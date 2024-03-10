@@ -1,13 +1,13 @@
-from hive.game import Game
+from hive.game.game import Game
 
 
 def game_as_text(game: Game, border=0, show_positions=False) -> str:
 
     # find the extreme x value and y value - min is top left corner
-    min_q = min([loc[0] for loc in game.board.grid.keys()])
-    min_r = min([loc[1] for loc in game.board.grid.keys()])
-    max_q = max([loc[0] for loc in game.board.grid.keys()])
-    max_r = max([loc[1] for loc in game.board.grid.keys()])
+    min_q = min([loc[0] for loc in game.grid.keys()])
+    min_r = min([loc[1] for loc in game.grid.keys()])
+    max_q = max([loc[0] for loc in game.grid.keys()])
+    max_r = max([loc[1] for loc in game.grid.keys()])
 
     # loop over y values - these are the rows
     rows = []
@@ -21,7 +21,7 @@ def game_as_text(game: Game, border=0, show_positions=False) -> str:
             if (q + r) % 2 == 1:
                 q += 1
 
-            piece = game.board.grid.get((q, r))
+            piece = game.grid.get((q, r))
             if piece is not None:
                 row.append(f"({piece.as_text():^8})")
             else:

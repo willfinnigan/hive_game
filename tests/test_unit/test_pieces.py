@@ -1,9 +1,13 @@
 import pytest
 
-from hive.custom_types import  WHITE, BLACK
-from hive.errors import NoQueenError
-from hive.game import Game
-from hive.piece import Piece, Queen, Ant, GrassHopper, Spider, Beetle
+from hive.game.types_and_errors import NoQueenError, WHITE, BLACK
+from hive.game.game import Game
+from hive.game.pieces.beetle import Beetle
+from hive.game.pieces.spider import Spider
+from hive.game.pieces.grasshopper import GrassHopper
+from hive.game.pieces.ant import Ant
+from hive.game.pieces.queen import Queen
+from hive.game.pieces.piece_base_class import Piece
 from hive.render.python_output import game_as_text
 
 
@@ -66,7 +70,7 @@ def test_queen_possible_moves_are_1_away():
     print('\nGame board')
     print(game_as_text(game))
 
-    possible_moves = queen.get_possible_moves(game.board)
+    possible_moves = queen.get_possible_moves(game.grid)
     assert possible_moves == [(-5, -1), (-5, 1)]
 
 def test_ant_can_move_anywhere_on_a_line():
@@ -75,7 +79,7 @@ def test_ant_can_move_anywhere_on_a_line():
     ant = Ant(colour=WHITE)
     game.place_piece(ant, (-8, 0))
 
-    possible_moves = ant.get_possible_moves(game.board)
+    possible_moves = ant.get_possible_moves(game.grid)
     assert len(possible_moves) == 19
 
 
@@ -85,7 +89,7 @@ def test_grasshoper_can_jump_over_pieces():
     grass_hopper = GrassHopper(colour=WHITE)
     game.place_piece(grass_hopper, (-8, 0))
 
-    possible_moves = grass_hopper.get_possible_moves(game.board)
+    possible_moves = grass_hopper.get_possible_moves(game.grid)
     assert possible_moves == [(10, 0)]
 
 def test_spider_moves_3_moves():
@@ -94,7 +98,7 @@ def test_spider_moves_3_moves():
     spider = Spider(colour=WHITE)
     game.place_piece(spider, (-8, 0))
 
-    possible_moves = spider.get_possible_moves(game.board)
+    possible_moves = spider.get_possible_moves(game.grid)
     assert possible_moves == [(-3, -1), (-3, 1)]   # 3 moves along the straight line on either side
 
 
@@ -107,7 +111,7 @@ def test_beetle_can_get_possible_moves_move_1_space_and_on_to_another_piece():
     beetle = Beetle(colour=BLACK)
     game.place_piece(beetle, (2, 0))
 
-    possible_moves = beetle.get_possible_moves(game.board)
+    possible_moves = beetle.get_possible_moves(game.grid)
     assert possible_moves == [(1, -1), (1, 1), (0, 0)]
 
 def test_beetle_can_move_one_top_of_another_piece():
@@ -122,11 +126,17 @@ def test_beetle_can_move_one_top_of_another_piece():
     game.place_piece(beetle, (2, 0))
 
     game.move_piece(beetle, (0, 0))
-    assert game.board.get_piece((0,0)) == queen
+    assert game.grid.get((0,0)) == queen
     assert beetle.location == (0, 0)
     assert beetle.sitting_on == queen
     assert queen.on_top == beetle
 
-
-
-
+def test_ant_can_move_around_2_piece():
+    ant1 = Ant(WHITE)
+    ant2 = Ant(BLACK)
+    ant3 = Ant(WHITE)
+    ant1.location = (0, 0)
+    ant2.location = (1, 1)
+    ant3.location = (2, 0)
+    grid = {(0, 0): ant1, (1, -1): ant2, (2, 0): ant3}
+    assert len(ant1.get_possible_moves(grid)) == 7

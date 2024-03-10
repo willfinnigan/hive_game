@@ -1,5 +1,5 @@
 from copy import deepcopy
-from hive.grid_functions import one_move_away
+from hive.game.grid_functions import one_move_away
 
 grid = {(4, 2): True,
         (5, 1): True,
