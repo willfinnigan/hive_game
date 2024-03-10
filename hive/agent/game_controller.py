@@ -38,7 +38,7 @@ if __name__ == '__main__':
     from hive.agent.player import RandomAI
 
 
-    for i in range(20):
+    for i in range(5):
         random_ai_1 = RandomAI(WHITE)
         random_ai_2 = RandomAI(BLACK)
         game = Game()

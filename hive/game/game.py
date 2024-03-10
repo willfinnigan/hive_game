@@ -38,6 +38,9 @@ class Game:
         if self.has_player_lost(piece.colour):
             raise PlayerHasLost(f"{piece.colour} has lost")
 
+        if self.queens.get(piece.colour) is None:
+            raise NoQueenError(f"{piece.colour} must place a queen before moving other pieces")
+
         possible_moves = piece.get_possible_moves(self.grid)
         if new_loc not in possible_moves:
             raise InvalidMoveError(f"Invalid move for {piece.__class__} - {new_loc} not in {possible_moves}")

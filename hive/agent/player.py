@@ -31,7 +31,10 @@ class Player():
         if self._must_play_queen(game):
             return self._queen_placements(game)
 
-        return self._all_placements(game) + self._placed_piece_moves(game)
+        moves = self._all_placements(game)  # can always place pieces
+        if game.queens.get(self.colour) is not None:  # but can only move once queen is placed
+            moves += self._placed_piece_moves(game)
+        return moves
 
     def _must_play_queen(self, game) -> bool:
         try:
@@ -67,15 +70,11 @@ class Player():
         for piece in placed_pieces:
             locations = piece.get_possible_moves(game.grid)
             possible_moves += [Move(piece, location, False) for location in locations]
-
         return possible_moves
 
 class RandomAI(Player):
     """ Plays moves completely randomly """
     def get_move(self, game) -> Move:
-        # is queen connected
-        queen = game.queens[self.colour]
-
         possible_moves = self.possible_moves(game)
         if len(possible_moves) == 0:
             return NoMove(self.colour)
