@@ -15,13 +15,6 @@ class Queen(Piece):
             super().__init__(colour)
             self.piece_letter = 'Q'
 
-        def get_possible_moves(self, grid: Grid) -> List[Location]:
-            """Queen can move 1 space in any direction."""
-            if self.on_top is not None:
-                return []
-            if can_remove_piece(grid, self) == False:
-                return []  # if we can not move the piece, there are no possible moves
-
-            tmp_grid = deepcopy(grid)
-            tmp_grid.pop(self.location)
-            return one_move_away(tmp_grid, self.location)
+        def get_moves(self, grid: Grid, loc: Location) -> List[Location]:
+            """Get possible moves for a piece"""
+            return one_move_away(grid, loc)

@@ -1,13 +1,15 @@
 from __future__ import annotations
-
+from functools import lru_cache
 from copy import deepcopy
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Tuple
 
 if TYPE_CHECKING:
     from hive.game.pieces.piece_base_class import Piece
     from hive.game.types_and_errors import Location, Grid, Colour
 
 
+
+@lru_cache(maxsize=None)
 def positions_around_location(loc: Location) -> list:
     """Returns the position around a location in a clockwise order"""
 
@@ -18,13 +20,10 @@ def positions_around_location(loc: Location) -> list:
     """
     # Doubled coordinates - double width - https://www.redblobgames.com/grids/hexagons/
     q, r = loc
-    return [(q-1, r-1), (q+1, r-1), (q+2, r), (q+1, r+1), (q-1, r+1), (q-2, r)]
+    return ((q-1, r-1), (q+1, r-1), (q+2, r), (q+1, r+1), (q-1, r+1), (q-2, r))
 
-def pieces_around_location(grid: Grid, loc: Location) -> list:
-    positions = positions_around_location(loc)
-    pieces = [grid.get(pos) for pos in positions]
-    pieces = [p for p in pieces if p is not None]
-    return pieces
+def pieces_around_location(grid: Grid, loc: Location):
+    return tuple(v for v in {pos: grid.get(pos) for pos in positions_around_location(loc)}.values() if v is not None)
 
 def is_position_connected(grid: Grid, loc: Location):
     pieces = pieces_around_location(grid, loc)

@@ -29,17 +29,28 @@ class Beetle(Piece):
         else:
             self._place_on_new_location(grid, location)
 
+    def get_moves(self, grid: Grid, loc: Location) -> List[Location]:
+        """Get possible moves for a piece"""
+        return beetle_one_move_away(grid, loc)
 
     def get_possible_moves(self, grid: Grid) -> List[Location]:
         """Beetle can move 1 space in any direction, or climb on top of another piece"""
-
+        # check if beetle is on top of another piece
 
         if self.on_top is not None:
             return []
         if can_remove_piece(grid, self) == False:
             return []
 
-        tmp_grid = deepcopy(grid)
-        tmp_grid.pop(self.location)
-        locations = beetle_one_move_away(tmp_grid, self.location)
+        loc = self.location
+        if self.sitting_on is None:
+            grid.pop(self.location)
+        self.location = None
+
+        locations = self.get_moves(grid, loc)
+
+        self.location = loc
+        if self.sitting_on is None:
+            grid[loc] = self
+
         return locations

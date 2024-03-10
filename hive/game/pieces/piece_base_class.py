@@ -54,15 +54,28 @@ class Piece:
         grid.pop(self.location)  # remove piece from grid
         self.location = None  # update piece location
 
+    def get_moves(self, grid: Grid, loc: Location) -> List[Location]:
+        """Get possible moves for a piece"""
+        return get_empty_locations(grid)
+
     def get_possible_moves(self, grid: Grid) -> List[Location]:
         """Base piece can move anywhere"""
         if self.on_top is not None:
             return []
-
         if can_remove_piece(grid, self) == False:
             return []  # if we can not move the piece, there are no possible moves
 
-        locations = get_empty_locations(grid)
+        # temporarily remove piece from grid
+        loc = self.location
+        grid.pop(loc)
+        self.location = None
+
+        locations = self.get_moves(grid, loc)
+
+        # revert grid
+        self.location = loc
+        grid[loc] = self
+
         return locations
 
 

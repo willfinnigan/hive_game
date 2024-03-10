@@ -13,8 +13,6 @@ class GrassHopper(Piece):
         super().__init__(colour)
         self.piece_letter = 'G'
 
-
-
     def get_possible_moves(self, grid: Grid) -> List[Location]:
         """Grasshopper can jump over pieces in a straight line"""
         if self.on_top is not None:
