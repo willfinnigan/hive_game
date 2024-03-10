@@ -58,6 +58,7 @@ class Piece:
         """Base piece can move anywhere"""
         if self.on_top is not None:
             return []
+
         if can_remove_piece(grid, self) == False:
             return []  # if we can not move the piece, there are no possible moves
 

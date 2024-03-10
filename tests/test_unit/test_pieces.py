@@ -69,7 +69,7 @@ def test_queen_possible_moves_are_1_away():
 
     print('\nGame board')
     print(game_as_text(game))
-
+    print(game.grid)
     possible_moves = queen.get_possible_moves(game.grid)
     assert possible_moves == [(-5, -1), (-5, 1)]
 

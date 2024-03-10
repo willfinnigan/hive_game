@@ -22,15 +22,6 @@ class Queen(Piece):
             if can_remove_piece(grid, self) == False:
                 return []  # if we can not move the piece, there are no possible moves
 
-            # temporarily remove piece from grid
-            loc = self.location
-            grid.pop(self.location)
-            self.location = None
-
-            # get possible moves
-            possible_moves = one_move_away(grid, loc)
-
-            # revert grid
-            self.location = loc
-            grid[loc] = self
-            return possible_moves
+            tmp_grid = deepcopy(grid)
+            tmp_grid.pop(self.location)
+            return one_move_away(tmp_grid, self.location)

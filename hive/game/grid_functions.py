@@ -116,26 +116,35 @@ def check_can_slide_to(grid: Grid, loc: Location, to_loc: Location):
 def can_remove_piece(grid: Grid, piece: Piece) -> bool:
     """ does removing piece break the hive? """
 
+    if piece.sitting_on is not None:
+        if piece.on_top is None:
+            return True
+        else:
+            return False
+
     loc = piece.location
     surrounding = pieces_around_location(grid, loc)  # up to 6 surrounding pieces
 
-    tmp_grid = deepcopy(grid)
-    try:
-        tmp_grid.pop(loc)
-    except:
-        print(f"Error removing piece {piece} {piece.location} from grid at {loc}")
-        print(grid)
-        raise Exception()
+    # temporarily remove piece from grid
+    grid.pop(loc)
+    piece.location = None
 
     # if I remove this piece, are can the pieces directly around still connected to each other?
-    for piece in surrounding:
-        if is_piece_connected_to_hive(tmp_grid, piece) == False:
-            return False
-    return True
+    can_remove = True
+    for s_piece in surrounding:
+        if is_piece_connected_to_hive(grid, s_piece) == False:
+            can_remove = False
+            break
+
+    # revert grid
+    piece.location = loc
+    grid[loc] = piece
+    return can_remove
 
 
 def is_piece_connected_to_hive(grid: Grid, piece: Piece) -> bool:
     """Can this piece reach all other pieces in the hive?"""
+
     connected = all_connected(piece, grid)
     if len(connected) == len(grid):
         return True

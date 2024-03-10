@@ -14,9 +14,6 @@ class Ant(Piece):
         super().__init__(colour)
         self.piece_letter = 'A'
 
-
-
-
     def get_possible_moves(self, grid: Grid) -> List[Location]:
         """Ant can move to any space, provided there is a linear path to it"""
         if self.on_top is not None:
