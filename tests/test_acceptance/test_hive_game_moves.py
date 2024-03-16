@@ -1,6 +1,6 @@
-from hive.custom_types import WHITE, BLACK
-from hive.game import Game
-from hive.piece import Piece
+from hive.game.types_and_errors import WHITE, BLACK
+from hive.game.game import Game
+from hive.game.pieces.piece_base_class import Piece
 from hive.render.python_output import game_as_text
 
 
