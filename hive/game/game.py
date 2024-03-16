@@ -34,6 +34,7 @@ class Game:
 
         self.check_queen_exists(piece.colour)
 
+
     def move_piece(self, piece: Piece, new_loc: Location):
         if self.has_player_lost(piece.colour):
             raise PlayerHasLost(f"{piece.colour} has lost")

@@ -1,16 +1,14 @@
 from __future__ import annotations
-import random
-from typing import List, Optional
+from typing import List
 
-from hive.agent.move import Move, NoMove
-from hive.game.grid_functions import get_placeable_locations, is_piece_connected_to_hive, all_connected
+from hive.game.grid_functions import get_placeable_locations
 from hive.game.pieces.ant import Ant
 from hive.game.pieces.beetle import Beetle
 from hive.game.pieces.grasshopper import GrassHopper
 from hive.game.pieces.queen import Queen
 from hive.game.pieces.spider import Spider
 from hive.game.types_and_errors import Colour, NoQueenError
-from hive.render.python_output import game_as_text
+from hive.play.move import Move
 
 
 class Player():
@@ -71,15 +69,6 @@ class Player():
             locations = piece.get_possible_moves(game.grid)
             possible_moves += [Move(piece, location, False) for location in locations]
         return possible_moves
-
-class RandomAI(Player):
-    """ Plays moves completely randomly """
-    def get_move(self, game) -> Move:
-        possible_moves = self.possible_moves(game)
-        if len(possible_moves) == 0:
-            return NoMove(self.colour)
-
-        return random.choice(possible_moves)
 
 
 

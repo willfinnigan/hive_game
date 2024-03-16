@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Optional, List
 
 from hive.game.types_and_errors import Location, Colour, Grid

@@ -1,7 +1,6 @@
 from __future__ import annotations
 from functools import lru_cache
-from copy import deepcopy
-from typing import List, TYPE_CHECKING, Tuple
+from typing import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from hive.game.pieces.piece_base_class import Piece
@@ -42,13 +41,21 @@ def get_empty_locations(grid: Grid):
     return empty
 
 def one_move_away(grid: Grid, loc: Location) -> List[Location]:
-    """Return all connected empty locations 1 move away from location"""
+    """Return all connected empty locations 1 move away from location
+    But must be able to slide to that location without breaking connection
+    """
 
-    one_move_away = positions_around_location(loc)
-    one_move_away = [loc for loc in one_move_away if grid.get(loc, None) is None]
+    one_away = positions_around_location(loc)
+    empty_one_move_away = (loc for loc in one_away if grid.get(loc, None) is None)
+
     connected_spaces = []
-    for space in one_move_away:
-        if is_position_connected(grid, space) == False:
+    for space in empty_one_move_away:
+
+        # is there a piece next to this position, which is directly next to the original location
+        adjacent_spaces_with_piece = tuple(p for p in positions_around_location(space) if p in one_away and grid.get(p, None) is not None)
+        if len(adjacent_spaces_with_piece) == 0:
+            continue
+        elif is_position_connected(grid, space) == False:
             continue
         elif check_can_slide_to(grid, loc, space) == False:
             continue

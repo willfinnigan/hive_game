@@ -73,6 +73,28 @@ def test_queen_possible_moves_are_1_away():
     possible_moves = queen.get_possible_moves(game.grid)
     assert possible_moves == [(-5, -1), (-5, 1)]
 
+def test_queen_can_not_jump_a_piece():
+    queen = Queen(WHITE)
+    grid = {(6, 2): queen, (8, 2): Queen(BLACK),
+            (9, 3): Ant(WHITE), (8, 4): Ant(BLACK),
+            (6, 4): Ant(WHITE)}
+
+    # update piece positions from the grid
+    for loc, piece in grid.items():
+        piece.location = loc
+
+    moves = queen.get_possible_moves(grid)
+
+    print(moves)
+
+    # this shouldn't be possible because it breaks the connection
+    assert (5, 3) not in moves
+    assert len(moves) == 2
+
+
+
+
+
 def test_ant_can_move_anywhere_on_a_line():
     game = initial_5_move_game()
 
