@@ -1,4 +1,4 @@
-from hive.game.game import Game
+from v1.hive.game.game import Game
 
 
 def game_as_text(game: Game, border=0, show_positions=False) -> str:

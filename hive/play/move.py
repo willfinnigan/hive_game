@@ -1,23 +1,26 @@
 from dataclasses import dataclass
+from typing import Optional
 
-from hive.game.pieces.piece_base_class import Piece
-from hive.game.types_and_errors import Location, Colour
+from hive.types import Piece, Location, Colour
 
 
 @dataclass
-class Move():
+class Move:
     piece: Piece
-    location: Location
-    place: bool
-
-    def __post_init__(self):
-        self.original_location = self.piece.location
+    current_location: Optional[Location]
+    new_location: Location
 
     def play(self, game):
-        if self.place == True:
-            game.place_piece(self.piece, self.location)
+        if self.current_location is None:
+            game.place_piece(self.piece, self.new_location)
         else:
-            game.move_piece(self.piece, self.location)
+            game.move_piece(self.current_location, self.new_location)
+
+    def __repr__(self):
+        piece_name = f"{self.piece.colour}_{self.piece.name.name}_{self.piece.number}"
+        if self.current_location is None:
+            return f"Place({piece_name} at {self.new_location})"
+        return f"Move({piece_name} from {self.current_location} to {self.new_location}"
 
 
 

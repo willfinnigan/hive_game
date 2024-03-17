@@ -3,8 +3,8 @@ from functools import lru_cache
 from typing import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from hive.game.pieces.piece_base_class import Piece
-    from hive.game.types_and_errors import Location, Grid, Colour
+    from v1.hive.game.pieces.piece_base_class import Piece
+    from v1.hive.game.types_and_errors import Location, Grid, Colour
 
 
 

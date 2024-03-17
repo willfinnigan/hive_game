@@ -1,7 +1,7 @@
-from hive.game.game import Game
-from hive.game.pieces.ant import Ant
-from hive.game.pieces.queen import Queen
-from hive.game.types_and_errors import WHITE, BLACK
+from v1.hive.game.game import Game
+from v1.hive.game.pieces.ant import Ant
+from v1.hive.game.pieces.queen import Queen
+from v1.hive.game.types_and_errors import WHITE, BLACK
 
 red = "\033[31m"
 blue = "\033[34m"

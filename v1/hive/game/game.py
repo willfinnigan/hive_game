@@ -1,13 +1,13 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Optional, List
 
-from hive.game.types_and_errors import InvalidMoveError, PlayerHasLost, NoQueenError, Location, Colour, WHITE, BLACK, \
+from v1.hive.game.types_and_errors import InvalidMoveError, PlayerHasLost, NoQueenError, Location, Colour, WHITE, BLACK, \
     Grid
-from hive.game.grid_functions import pieces_around_location
-from hive.game.pieces.queen import Queen
+from v1.hive.game.grid_functions import pieces_around_location
+from v1.hive.game.pieces.queen import Queen
 
 if TYPE_CHECKING:
-    from hive.game.pieces.piece_base_class import Piece
+    from v1.hive.game.pieces.piece_base_class import Piece
 
 class Game:
 

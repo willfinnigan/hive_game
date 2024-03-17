@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Optional, List
 
-from hive.game.types_and_errors import Location, Colour, Grid
-from hive.game.grid_functions import beetle_one_move_away, can_remove_piece
-from hive.game.pieces.piece_base_class import Piece
+from v1.hive.game.types_and_errors import Location, Colour, Grid
+from v1.hive.game.grid_functions import beetle_one_move_away, can_remove_piece
+from v1.hive.game.pieces.piece_base_class import Piece
 
 
 

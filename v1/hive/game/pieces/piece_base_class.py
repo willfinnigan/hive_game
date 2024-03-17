@@ -1,9 +1,9 @@
 from __future__ import annotations
 from typing import Optional, List
 
-from hive.game.check_moves import exception_if_invalid_location, exception_if_invalid_placement, exception_if_invalid_move
-from hive.game.types_and_errors import InvalidMoveError, BreaksConnectionError, Location, Colour, Grid
-from hive.game.grid_functions import get_empty_locations,  can_remove_piece
+from v1.hive.game.check_moves import exception_if_invalid_location, exception_if_invalid_placement, exception_if_invalid_move
+from v1.hive.game.types_and_errors import InvalidMoveError, BreaksConnectionError, Location, Colour, Grid
+from v1.hive.game.grid_functions import get_empty_locations,  can_remove_piece
 
 
 white = "\033[37m"

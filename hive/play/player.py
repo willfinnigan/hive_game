@@ -1,24 +1,27 @@
 from __future__ import annotations
 from typing import List
 
-from hive.game.grid_functions import get_placeable_locations
-from hive.game.pieces.ant import Ant
-from hive.game.pieces.beetle import Beetle
-from hive.game.pieces.grasshopper import GrassHopper
-from hive.game.pieces.queen import Queen
-from hive.game.pieces.spider import Spider
-from hive.game.types_and_errors import Colour, NoQueenError
+from hive.errors import NoQueenError
+from hive.grid_functions import get_placeable_locations
+from hive.piece_logic import get_possible_moves
 from hive.play.move import Move
+from hive.types import Colour, PieceName, Piece
 
 
 class Player():
     def __init__(self, colour: Colour):
         self.colour = colour
-        self.pieces = [Queen(colour),
-                       Spider(colour), Spider(colour),
-                       Beetle(colour), Beetle(colour),
-                       GrassHopper(colour), GrassHopper(colour), GrassHopper(colour),
-                       Ant(colour), Ant(colour), Ant(colour)]
+        self.pieces = [Piece(colour, PieceName.QUEEN, 1),
+                       Piece(colour, PieceName.ANT, 1),
+                       Piece(colour, PieceName.ANT, 2),
+                       Piece(colour, PieceName.ANT, 3),
+                       Piece(colour, PieceName.BEETLE, 1),
+                       Piece(colour, PieceName.BEETLE, 2),
+                       Piece(colour, PieceName.GRASSHOPPER, 1),
+                       Piece(colour, PieceName.GRASSHOPPER, 2),
+                       Piece(colour, PieceName.GRASSHOPPER, 3),
+                       Piece(colour, PieceName.SPIDER, 1),
+                       Piece(colour, PieceName.SPIDER, 2)]
 
     def get_move(self, game) -> Move:
         """ AI or Human selection of move """
@@ -43,10 +46,10 @@ class Player():
 
     def _queen_placements(self, game) -> List[Move]:
         possible_moves = []
-        queen = [piece for piece in self.pieces if isinstance(piece, Queen)][0]
+        queen = [piece for piece in self.pieces if piece.name == PieceName.QUEEN][0]
         placeable_locations = get_placeable_locations(game.grid, self.colour)
         for location in placeable_locations:
-            possible_moves.append(Move(queen, location, True))
+            possible_moves.append(Move(queen, None, location))
         return possible_moves
 
     def _all_placements(self, game) -> List[Move]:
@@ -54,20 +57,33 @@ class Player():
         # all placeable locations * all pieces
         possible_moves = []
         placeable_locations = get_placeable_locations(game.grid, self.colour)
-        unplaced_pieces = [piece for piece in self.pieces if piece.location is None]
+
+        placed_pieces = []
+        for loc, stack in game.grid.items():
+            for piece in stack:
+                if piece.colour == self.colour:
+                    placed_pieces.append(piece)
+
+        unplaced_pieces = [piece for piece in self.pieces if piece not in placed_pieces]
+
         for piece in unplaced_pieces:
             for location in placeable_locations:
-                possible_moves.append(Move(piece, location, True))
+                possible_moves.append(Move(piece, None, location))
 
         return possible_moves
 
     def _placed_piece_moves(self, game) -> List[Move]:
-        # placed_pieces where can they move
+
+        moveable_pieces = []
+        for loc, stack in game.grid.items():
+            if stack and stack[-1].colour == self.colour:
+                piece = stack[-1]
+                moveable_pieces.append((piece, loc))
+
         possible_moves = []
-        placed_pieces = [piece for piece in self.pieces if piece.location is not None]
-        for piece in placed_pieces:
-            locations = piece.get_possible_moves(game.grid)
-            possible_moves += [Move(piece, location, False) for location in locations]
+        for piece, current_location in moveable_pieces:
+            move_locations = get_possible_moves(game.grid, current_location)
+            possible_moves += [Move(piece, current_location, loc) for loc in move_locations]
         return possible_moves
 
 

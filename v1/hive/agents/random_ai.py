@@ -3,9 +3,8 @@ from __future__ import annotations
 import random
 from typing import Union
 
-from hive.play.move import Move, NoMove
-from hive.play.player import Player
-
+from v1.hive.play.move import Move, NoMove
+from v1.hive.play.player import Player
 
 class RandomAI(Player):
     """ Plays moves completely randomly """

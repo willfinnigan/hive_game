@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from hive.game.grid_functions import pieces_around_location
-from hive.game.types_and_errors import Location, InvalidPlacementError, InvalidMoveError, InvalidLocationError, Grid
+from v1.hive.game.grid_functions import pieces_around_location
+from v1.hive.game.types_and_errors import Location, InvalidPlacementError, InvalidMoveError, InvalidLocationError, Grid
 
 if TYPE_CHECKING:
-    from hive.game.pieces.piece_base_class import Piece
+    from v1.hive.game.pieces.piece_base_class import Piece
 
 
 def exception_if_invalid_placement(grid: Grid, loc: Location, piece: Piece):
