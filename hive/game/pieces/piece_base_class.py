@@ -14,24 +14,36 @@ yellow = "\033[33m"
 reset = "\033[0m"
 
 class Piece:
-    def __init__(self, colour: Colour):
+    def __init__(self, colour: Colour, number: int = 0):
         self.colour: Colour = colour
         self.piece_letter: str = 'P'
         self.location: Location = None
+        self.number: int = number  # number of this piece on the board
 
         self.on_top: Optional[Piece] = None  # if there is a piece on top of this one
         self.sitting_on: Optional[Piece] = None  # if this piece is om top of another one
 
         self.can_move_on_top = False  # basically is a beetle at this point
 
-    def as_text(self):
+    def __post_init__(self):
+        # number must be single digit (negative or positive)
+        if self.number > 9 or self.number < -9:
+            raise ValueError("Piece number must be a single digit")
+
+    def as_text_colour(self):
         if self.colour == "white":
             return f"{yellow}{self.piece_letter}{reset}"
         else:
             return f"{darkblue}{self.piece_letter}{reset}"
 
+    def as_text(self):
+        if self.number == 0:
+            return f"{self.colour} {self.piece_letter}  "
+        else:
+            return f"{self.colour} {self.piece_letter} {self.number}"
+
     def __repr__(self):
-        return self.as_text()
+        return self.as_text_colour()
 
     def place(self, grid: Grid, location: Location, new_piece: bool):
         """Place this piece on the board, either for the first time or as a move"""

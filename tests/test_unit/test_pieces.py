@@ -8,7 +8,7 @@ from hive.game.pieces.grasshopper import GrassHopper
 from hive.game.pieces.ant import Ant
 from hive.game.pieces.queen import Queen
 from hive.game.pieces.piece_base_class import Piece
-from hive.render.python_output import game_as_text
+from hive.render.text.python_output import game_as_text
 
 
 def initial_3_move_game() -> Game:

@@ -3,7 +3,7 @@ from hive.agents.scored_moves_based_ai import MoveScores, ScoreMovesAI
 from hive.game.game import Game
 from hive.game.types_and_errors import WHITE, BLACK
 from hive.play.player import Player
-from hive.render.small_print import game_to_text
+from hive.render.text.small_print import game_to_text
 
 
 class GameController():

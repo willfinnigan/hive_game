@@ -2,6 +2,16 @@ from hive.game.game import Game
 
 
 def game_as_text(game: Game, border=0, show_positions=False) -> str:
+    """Convert a game to a text representation.
+
+    Args:
+        game (Game): The game object to convert.
+        border (int): The number of empty spaces to add around the grid.
+        show_positions (bool): Whether to show the positions of the pieces.
+
+    Returns:
+        str: The text representation of the game.
+    """
 
     # find the extreme x value and y value - min is top left corner
     min_q = min([loc[0] for loc in game.grid.keys()])
@@ -23,7 +33,7 @@ def game_as_text(game: Game, border=0, show_positions=False) -> str:
 
             piece = game.grid.get((q, r))
             if piece is not None:
-                row.append(f"({piece.as_text():^8})")
+                row.append(f"({piece.as_text_colour():^8})")
             else:
                 if show_positions == True:
                     row.append(f"({q:^3}, {r:^3})")
@@ -37,3 +47,19 @@ def game_as_text(game: Game, border=0, show_positions=False) -> str:
         rows.append(row_text)
 
     return "\n".join(rows)
+
+
+if __name__ == "__main__":
+    from hive.game.pieces.ant import Ant
+    from hive.game.types_and_errors import WHITE, BLACK
+
+    grid = {(6, 2): Ant(BLACK),
+            (5, 1): Ant(WHITE),
+            (7, 1): Ant(WHITE),
+            (8, 2): Ant(WHITE),
+            (7, 3): Ant(WHITE),
+            (5, 3): Ant(WHITE),
+            (4, 2): Ant(WHITE), }
+
+    game = Game(grid=grid)
+    print(game_as_text(game))

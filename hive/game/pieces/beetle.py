@@ -10,9 +10,10 @@ from hive.game.pieces.piece_base_class import Piece
 
 class Beetle(Piece):
 
-    def __init__(self, colour: Colour):
+    def __init__(self, colour: Colour, number: int = 0):
         super().__init__(colour)
         self.piece_letter = 'B'
+        self.number = number  # number of this piece on the board
         self.sitting_on: Optional[Piece] = None
         self.can_move_on_top = True
 
