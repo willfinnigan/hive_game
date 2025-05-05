@@ -36,7 +36,9 @@ def check_is_valid_move(grid, current_loc, loc: Location):
 
     # are all the positions around the current location still connected if the piece is removed?
     stack = grid.get(current_loc)
-    if len(stack) >= 2:
+    if stack is None:
+        raise InvalidMoveError(f"No piece at location {current_loc}")
+    elif len(stack) >= 2:
         pass
     elif can_remove_piece(grid, current_loc) == False:
         raise BreaksConnectionError

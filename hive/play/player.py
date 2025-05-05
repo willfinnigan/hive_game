@@ -5,29 +5,30 @@ from hive.errors import NoQueenError
 from hive.grid_functions import get_placeable_locations
 from hive.piece_logic import get_possible_moves
 from hive.play.move import Move
-from hive.game_types import Colour, PieceName, Piece
+from hive.game_types import Colour, Game, Piece
+from hive import pieces
 
 
 class Player():
     def __init__(self, colour: Colour):
         self.colour = colour
-        self.pieces = [Piece(colour, PieceName.QUEEN, 1),
-                       Piece(colour, PieceName.ANT, 1),
-                       Piece(colour, PieceName.ANT, 2),
-                       Piece(colour, PieceName.ANT, 3),
-                       Piece(colour, PieceName.BEETLE, 1),
-                       Piece(colour, PieceName.BEETLE, 2),
-                       Piece(colour, PieceName.GRASSHOPPER, 1),
-                       Piece(colour, PieceName.GRASSHOPPER, 2),
-                       Piece(colour, PieceName.GRASSHOPPER, 3),
-                       Piece(colour, PieceName.SPIDER, 1),
-                       Piece(colour, PieceName.SPIDER, 2)]
+        self.pieces = [Piece(colour, pieces.QUEEN, 1),
+                       Piece(colour, pieces.ANT, 1),
+                       Piece(colour, pieces.ANT, 2),
+                       Piece(colour, pieces.ANT, 3),
+                       Piece(colour, pieces.BEETLE, 1),
+                       Piece(colour, pieces.BEETLE, 2),
+                       Piece(colour, pieces.GRASSHOPPER, 1),
+                       Piece(colour, pieces.GRASSHOPPER, 2),
+                       Piece(colour, pieces.GRASSHOPPER, 3),
+                       Piece(colour, pieces.SPIDER, 1),
+                       Piece(colour, pieces.SPIDER, 2)]
 
     def get_move(self, game) -> Move:
         """ AI or Human selection of move """
         pass
 
-    def possible_moves(self, game) -> List[Move]:
+    def possible_moves(self, game: Game) -> List[Move]:
 
         if self._must_play_queen(game):
             return self._queen_placements(game)
@@ -37,22 +38,22 @@ class Player():
             moves += self._placed_piece_moves(game)
         return moves
 
-    def _must_play_queen(self, game) -> bool:
+    def _must_play_queen(self, game: Game) -> bool:
         try:
             game.check_queen_exists(self.colour, moves_to_queen=3)
         except NoQueenError:
             return True
         return False
 
-    def _queen_placements(self, game) -> List[Move]:
+    def _queen_placements(self, game: Game) -> List[Move]:
         possible_moves = []
-        queen = [piece for piece in self.pieces if piece.name == PieceName.QUEEN][0]
+        queen = [piece for piece in self.pieces if piece.name == QUEEN][0]
         placeable_locations = get_placeable_locations(game.grid, self.colour)
         for location in placeable_locations:
             possible_moves.append(Move(queen, None, location))
         return possible_moves
 
-    def _all_placements(self, game) -> List[Move]:
+    def _all_placements(self, game: Game) -> List[Move]:
 
         # all placeable locations * all pieces
         possible_moves = []
@@ -72,7 +73,7 @@ class Player():
 
         return possible_moves
 
-    def _placed_piece_moves(self, game) -> List[Move]:
+    def _placed_piece_moves(self, game: Game) -> List[Move]:
 
         moveable_pieces = []
         for loc, stack in game.grid.items():

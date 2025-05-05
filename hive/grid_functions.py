@@ -40,7 +40,7 @@ def get_empty_locations(grid: Grid):
     empty = []
     for loc in grid.keys():
         for a_loc in positions_around_location(loc):
-            if grid.get(a_loc, []) == []:
+            if not grid.get(a_loc):
                 empty.append(a_loc)
     empty = list(set(empty))
     return empty

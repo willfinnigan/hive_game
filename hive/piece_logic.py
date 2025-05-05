@@ -1,5 +1,6 @@
+from hive.game_types import Grid, Location
 from hive.grid_functions import one_move_away, is_position_connected, beetle_one_move_away, can_remove_piece
-from hive.game_types import Piece, Grid, PieceName, Location
+from hive import pieces
 
 
 def get_ant_moves(grid: Grid, loc: Location):
@@ -100,11 +101,11 @@ def get_spider_moves(grid: Grid, loc: Location):
 
 
 
-move_functions = {PieceName.ANT: get_ant_moves,
-                  PieceName.BEETLE: get_beetle_moves,
-                  PieceName.GRASSHOPPER: get_grasshopper_moves,
-                  PieceName.QUEEN: get_queen_moves,
-                  PieceName.SPIDER: get_spider_moves
+move_functions = {pieces.ANT: get_ant_moves,
+                  pieces.BEETLE: get_beetle_moves,
+                  pieces.GRASSHOPPER: get_grasshopper_moves,
+                  pieces.QUEEN: get_queen_moves,
+                  pieces.SPIDER: get_spider_moves
                   }
 
 def get_possible_moves(grid: Grid, location: Location):

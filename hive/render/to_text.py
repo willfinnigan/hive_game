@@ -1,5 +1,6 @@
-from hive.game import Game
-from hive.game_types import Piece, WHITE, PieceName, BLACK
+from hive.game_types import Piece, WHITE, BLACK, Game
+from hive.game import has_player_lost, get_winner
+from hive import pieces
 
 red = "\033[31m"
 blue = "\033[34m"
@@ -10,8 +11,17 @@ yellow = "\033[33m"
 reset = "\033[0m"
 
 
-def piece_as_text(piece: Piece, highlight=False, include_number=True):
-    piece_letter = piece.name.name[0]
+def piece_as_text(piece, highlight=False, include_number=True):
+    # Handle the case where piece is an integer
+    if isinstance(piece, int):
+        return f"{yellow}{piece}{reset}"
+    
+    # Get the piece letter
+    if hasattr(piece.name, 'name'):  # Handle case where piece.name is an object with a name attribute
+        piece_letter = piece.name.name[0]
+    else:  # Handle case where piece.name is a string
+        piece_letter = piece.name[0]
+    
     if highlight:
         return f"{red}{piece_letter}{piece.number if include_number else ''}{reset}"
     elif piece.colour == WHITE:
@@ -21,6 +31,9 @@ def piece_as_text(piece: Piece, highlight=False, include_number=True):
 
 
 def game_to_text(game, highlight_piece_at=None, show_moves=None):
+    if not game.grid:
+        return "Empty board"
+        
     min_r = min([loc[1] for loc in game.grid.keys()])
     max_r = max([loc[1] for loc in game.grid.keys()])
     max_q = max([loc[0] for loc in game.grid.keys()])
@@ -38,8 +51,8 @@ def game_to_text(game, highlight_piece_at=None, show_moves=None):
         for q in range(min_q, max_q+2, 2):
             if (q + r) % 2 == 1:
                 q += 1
-            stack = game.grid.get((q, r), [])
-            if stack != []:
+            stack = game.grid.get((q, r), ())
+            if stack:
                 piece = stack[-1]
                 if (q, r) == highlight_piece_at:
                     row += f"{piece_as_text(piece, highlight=True)}"
@@ -71,7 +84,7 @@ def game_to_text_small(game):
         for q in range(min_q, max_q+2, 2):
             if (q + r) % 2 == 1:
                 q += 1
-            stack = game.grid.get((q, r), [])
+            stack = game.grid.get((q, r), ())
             if stack:
                 piece = stack[-1]  # Get the top piece from the stack
                 row += f"{piece_as_text(piece, include_number=False)}"
@@ -147,12 +160,12 @@ def large_game_to_text(game: Game, include_coordinates: bool = False, use_colors
     
     # Check if any player has lost
     for color in game.player_turns.keys():
-        if game.has_player_lost(color):
+        if has_player_lost(game, color):
             color_code = "W" if color == WHITE else "B"
             header.append(f"Player {color_code} has lost!")
     
     # Check if there's a winner
-    winner = game.get_winner()
+    winner = get_winner(game)
     if winner:
         winner_code = "W" if winner == WHITE else "B"
         header.append(f"Winner: {winner_code}")
@@ -188,7 +201,7 @@ def large_game_to_text(game: Game, include_coordinates: bool = False, use_colors
             if (q + r) % 2 == 1:
                 continue
                 
-            stack = game.grid.get((q, r), [])
+            stack = game.grid.get((q, r), ())
             if stack:
                 # Get the top piece from the stack
                 piece = stack[-1]
@@ -215,18 +228,23 @@ def large_game_to_text(game: Game, include_coordinates: bool = False, use_colors
     return "\n".join(header + [""] + rows)
 
 if __name__ == "__main__":
-    grid = {(6,2): [Piece(BLACK, PieceName.ANT, 1)],
-            (5,1): [Piece(WHITE, PieceName.ANT, 2)],
-            (7,1): [Piece(BLACK, PieceName.ANT, 3)],
-            (8,2): [Piece(WHITE, PieceName.ANT, 4)],
-            (7,3): [Piece(BLACK, PieceName.ANT, 5)],
-            (5,3): [Piece(WHITE, PieceName.ANT, 6)],
-            (4,2): [Piece(BLACK, PieceName.ANT, 6)]}
-game = Game(grid=grid)
-print(game_to_text(game, highlight_piece_at=(6,2)))
+    grid = {(6,2): (Piece(BLACK, pieces.ANT, 1),),
+            (5,1): (Piece(WHITE, pieces.ANT, 2),),
+            (7,1): (Piece(BLACK, pieces.ANT, 3),),
+            (8,2): (Piece(WHITE, pieces.ANT, 4),),
+            (7,3): (Piece(BLACK, pieces.ANT, 5),),
+            (5,3): (Piece(WHITE, pieces.ANT, 6),),
+            (4,2): (Piece(BLACK, pieces.ANT, 6),)}
+    
+    game = Game(
+        grid=grid,
+        player_turns={WHITE: 0, BLACK: 0},
+        queens={}
+    )
+    print(game_to_text(game, highlight_piece_at=(6,2)))
 
-print("\nSmall representation:")
-print(game_to_text_small(game))
+    print("\nSmall representation:")
+    print(game_to_text_small(game))
 
-print("\nLarge representation with colors:")
-print(large_game_to_text(game, use_colors=True))
+    print("\nLarge representation with colors:")
+    print(large_game_to_text(game, use_colors=True))

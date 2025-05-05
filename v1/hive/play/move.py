@@ -15,7 +15,7 @@ class Move():
 
     def play(self, game):
         if self.place == True:
-            game.place_piece(self.piece, self.location)
+            place_piece(game, self.piece, self.location)
         else:
             game.move_piece(self.piece, self.location)
 
