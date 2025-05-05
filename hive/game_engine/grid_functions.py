@@ -144,7 +144,12 @@ def check_can_slide_to(grid: Grid, loc: Location, to_loc: Location):
 def is_placeable_location(grid: Grid, loc: Location, colour: Colour) -> bool:
     piece_locations = pieces_around_location(grid, loc)
     stacks = [grid[loc] for loc in piece_locations]
-    colours_surrounding = set([stack[0].colour for stack in stacks])
+
+    colours_surrounding = set()
+    for stack in stacks:
+        for piece in stack:
+            colours_surrounding.add(piece.colour)
+
     if len(colours_surrounding) > 1 or colour not in colours_surrounding:
         return False  # colour would be next to another colour
     return True  # colour would be next to the same colour
