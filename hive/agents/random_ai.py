@@ -7,6 +7,7 @@ from hive.play.move import Move, NoMove
 from hive.play.player import Player
 
 class RandomAI(Player):
+    
     """ Plays moves completely randomly """
     def get_move(self, game) -> Union[Move|NoMove]:
         possible_moves = self.possible_moves(game)

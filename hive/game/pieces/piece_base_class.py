@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Optional, List
 
 from hive.game.check_moves import exception_if_invalid_location, exception_if_invalid_placement, exception_if_invalid_move
-from hive.game.types_and_errors import InvalidMoveError, BreaksConnectionError, Location, Colour, Grid
+from hive.game.types_and_errors import InvalidMoveError, BreaksConnectionError, Location, Colour, Grid, WHITE, BLACK
 from hive.game.grid_functions import get_empty_locations,  can_remove_piece
 
 
@@ -10,11 +10,11 @@ white = "\033[37m"
 black = "\033[30m"
 darkblue = "\033[36m"
 yellow = "\033[33m"
-
 reset = "\033[0m"
 
+
 class Piece:
-    def __init__(self, colour: Colour, number: int = 0):
+    def __init__(self, colour: Colour, number: int):
         self.colour: Colour = colour
         self.piece_letter: str = 'P'
         self.location: Location = None
@@ -31,19 +31,19 @@ class Piece:
             raise ValueError("Piece number must be a single digit")
 
     def as_text_colour(self):
-        if self.colour == "white":
+        if self.colour == "W":
             return f"{yellow}{self.piece_letter}{reset}"
         else:
             return f"{darkblue}{self.piece_letter}{reset}"
 
     def as_text(self):
         if self.number == 0:
-            return f"{self.colour} {self.piece_letter}  "
+            return f"{self.colour} {self.piece_letter} "
         else:
-            return f"{self.colour} {self.piece_letter} {self.number}"
+            return f"{self.colour}{self.piece_letter}{self.number}"
 
     def __repr__(self):
-        return self.as_text_colour()
+        return self.as_text()
 
     def place(self, grid: Grid, location: Location, new_piece: bool):
         """Place this piece on the board, either for the first time or as a move"""

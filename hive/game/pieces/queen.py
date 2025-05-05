@@ -11,9 +11,8 @@ from hive.game.pieces.piece_base_class import Piece
 class Queen(Piece):
 
         def __init__(self, colour: Colour, number: int = 0):
-            super().__init__(colour)
+            super().__init__(colour, number)
             self.piece_letter = 'Q'
-            self.number = number
 
         def get_moves(self, grid: Grid, loc: Location) -> List[Location]:
             """Get possible moves for a piece"""

@@ -7,13 +7,11 @@ from hive.game.grid_functions import beetle_one_move_away, can_remove_piece
 from hive.game.pieces.piece_base_class import Piece
 
 
-
 class Beetle(Piece):
 
     def __init__(self, colour: Colour, number: int = 0):
-        super().__init__(colour)
+        super().__init__(colour, number)
         self.piece_letter = 'B'
-        self.number = number  # number of this piece on the board
         self.sitting_on: Optional[Piece] = None
         self.can_move_on_top = True
 

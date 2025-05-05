@@ -9,9 +9,8 @@ from hive.game.pieces.piece_base_class import Piece
 class Ant(Piece):
 
     def __init__(self, colour: Colour, number: int = 0):
-        super().__init__(colour)
+        super().__init__(colour, number)
         self.piece_letter = 'A'
-        self.number = number  # number of this piece on the board
 
     def _clockwise_moves(self, grid, loc):
         locations = [loc]

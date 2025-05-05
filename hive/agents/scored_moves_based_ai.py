@@ -83,6 +83,7 @@ def prioritise_moves(moves: List[Move], game: Game, scores: MoveScores = None) -
     scored_moves = sorted(scored_moves, key=lambda x: x[0], reverse=True)
     return scored_moves
 
+
 class ScoreMovesAI(Player):
     """ Plays moves according to a move scoring policy
     Still pretty poor AI, but better than random.

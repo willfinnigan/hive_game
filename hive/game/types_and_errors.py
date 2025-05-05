@@ -3,8 +3,8 @@ from typing import Tuple
 Grid = dict
 Location = Tuple[int, int]
 Colour = str
-WHITE: Colour = 'white'
-BLACK: Colour = 'black'
+WHITE: Colour = 'W'
+BLACK: Colour = 'B'
 
 
 class InvalidPlacementError(Exception):

@@ -10,9 +10,8 @@ from hive.game.pieces.piece_base_class import Piece
 class GrassHopper(Piece):
 
     def __init__(self, colour: Colour, number: int = 0):
-        super().__init__(colour)
+        super().__init__(colour, number)
         self.piece_letter = 'G'
-        self.number = number  # number of this piece on the board
 
     def get_possible_moves(self, grid: Grid) -> List[Location]:
         """Grasshopper can jump over pieces in a straight line"""

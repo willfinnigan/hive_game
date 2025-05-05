@@ -14,11 +14,11 @@ from hive.play.move import Move
 class Player():
     def __init__(self, colour: Colour):
         self.colour = colour
-        self.pieces = [Queen(colour),
-                       Spider(colour), Spider(colour),
-                       Beetle(colour), Beetle(colour),
-                       GrassHopper(colour), GrassHopper(colour), GrassHopper(colour),
-                       Ant(colour), Ant(colour), Ant(colour)]
+        self.pieces = [Queen(colour, 1),
+                       Spider(colour, 1), Spider(colour, 2),
+                       Beetle(colour, 1), Beetle(colour, 2),
+                       GrassHopper(colour, 1), GrassHopper(colour, 2), GrassHopper(colour, 3),
+                       Ant(colour, 1), Ant(colour, 2), Ant(colour, 3)]
 
     def get_move(self, game) -> Move:
         """ AI or Human selection of move """
@@ -72,7 +72,16 @@ class Player():
 
 
 
+if __name__ == "__main__":
+    from hive.game.types_and_errors import Grid, Colour, WHITE
+    from hive.play.move import Move
+    from hive.game.game import Game
 
+    game = Game()
+    player = Player(WHITE)
+    move = Move(player.pieces[0], (0, 0), True)
+    move.play(game)
+    print(game.grid)
 
 
 

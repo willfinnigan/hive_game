@@ -15,27 +15,27 @@ def initial_3_move_game() -> Game:
     game = Game()
 
     # white 1
-    piece = Piece(colour=WHITE)
+    piece = Piece(colour=WHITE, number=1)
     game.place_piece(piece, (0, 0))
 
     # black 1
-    piece = Piece(colour=BLACK)
+    piece = Piece(colour=BLACK, number=1)
     game.place_piece(piece, (2, 0))
 
     # white 2
-    piece = Piece(colour=WHITE)
+    piece = Piece(colour=WHITE, number=1)
     game.place_piece(piece, (-2, 0))
 
     # black 2
-    piece = Piece(colour=BLACK)
+    piece = Piece(colour=BLACK, number=1)
     game.place_piece(piece, (4, 0))
 
     # white 3
-    piece = Piece(colour=WHITE)
+    piece = Piece(colour=WHITE, number=1)
     game.place_piece(piece, (-4, 0))
 
     # black 3
-    piece = Piece(colour=BLACK)
+    piece = Piece(colour=BLACK, number=1)
     game.place_piece(piece, (6, 0))
 
     return game
@@ -57,7 +57,7 @@ def initial_5_move_game():
 def test_no_queen_on_move_4_raises_exception():
     game = initial_3_move_game()
 
-    piece = Piece(colour=WHITE)
+    piece = Piece(colour=WHITE, number=1)
     with pytest.raises(NoQueenError):
         game.place_piece(piece, (-6, 0))
 
