@@ -1,6 +1,6 @@
 import pytest
 
-from hive.types import Piece, WHITE, BLACK
+from hive.game_types import Piece, WHITE, BLACK
 from tests.test_acceptance.test_hive_game_moves import Game
 from hive.errors import InvalidPlacementError
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from hive.types import Piece, Location, Colour
+from hive.game_types import Piece, Location, Colour
 
 
 @dataclass

@@ -1,5 +1,5 @@
 from hive.game import Game
-from hive.types import Piece, WHITE, BLACK
+from hive.game_types import Piece, WHITE, BLACK
 
 
 def test_can_run_through_the_first_four_moves():

@@ -1,7 +1,7 @@
 from hive.game import Game
 from hive.grid_functions import get_placeable_locations, can_remove_piece, is_piece_connected_to_hive
 from hive.render.to_text import game_to_text
-from hive.types import WHITE, Piece, BLACK, PieceName
+from hive.game_types import WHITE, Piece, BLACK, PieceName
 
 
 def test_can_identify_all_6_positions_around_a_single_white_piece():

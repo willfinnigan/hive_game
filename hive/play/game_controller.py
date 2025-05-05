@@ -3,7 +3,7 @@ from hive.game import Game
 from hive.play.move import NoMove
 from hive.play.player import Player
 from hive.render.to_text import game_to_text
-from hive.types import WHITE, BLACK
+from hive.game_types import WHITE, BLACK
 
 
 class GameController():

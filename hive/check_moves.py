@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from hive.errors import InvalidPlacementError, InvalidMoveError, InvalidLocationError, BreaksConnectionError
 
 from hive.grid_functions import pieces_around_location, is_position_connected, can_remove_piece
-from hive.types import Grid, Location, Colour
+from hive.game_types import Grid, Location, Colour
 
 
 def check_is_valid_placement(grid: Grid, loc: Location, colour: Colour):

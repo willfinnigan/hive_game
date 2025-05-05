@@ -4,15 +4,15 @@ from typing import Dict, Optional
 from hive.check_moves import check_is_valid_location, check_is_valid_placement, check_is_valid_move
 from hive.errors import NoQueenError
 from hive.grid_functions import pieces_around_location
-from hive.types import Grid, WHITE, BLACK, Piece, Location, Colour, PieceName
+from hive.game_types import Grid, WHITE, BLACK, Piece, Location, Colour, PieceName
 
 
 class Game:
 
     def __init__(self, grid: Grid = None):
         self.grid: Grid = grid or defaultdict(list)
-        self.player_turns: Dict[Colour: int] = {WHITE: 0, BLACK: 0}
-        self.queens: Dict[Colour: Location] = {}
+        self.player_turns: Dict[Colour, int] = {WHITE: 0, BLACK: 0}
+        self.queens: Dict[Colour, Location] = {}
 
     def place_piece(self, piece: Piece, location: Location):
         check_is_valid_location(location)

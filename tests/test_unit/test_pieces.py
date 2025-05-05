@@ -3,7 +3,7 @@ import pytest
 from hive.errors import NoQueenError
 from hive.game import Game
 from hive.piece_logic import get_possible_moves
-from hive.types import Piece, WHITE, PieceName, BLACK
+from hive.game_types import Piece, WHITE, PieceName, BLACK
 
 def initial_3_move_game() -> Game:
     game = Game()

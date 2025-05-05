@@ -2,7 +2,7 @@ import pytest
 
 from hive.errors import InvalidMoveError, BreaksConnectionError
 from hive.render.to_text import game_to_text
-from hive.types import Piece, WHITE, BLACK, PieceName
+from hive.game_types import Piece, WHITE, BLACK, PieceName
 from tests.test_acceptance.test_hive_game_moves import Game
 
 def test_can_move_a_piece():

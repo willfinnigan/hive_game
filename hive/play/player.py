@@ -5,7 +5,7 @@ from hive.errors import NoQueenError
 from hive.grid_functions import get_placeable_locations
 from hive.piece_logic import get_possible_moves
 from hive.play.move import Move
-from hive.types import Colour, PieceName, Piece
+from hive.game_types import Colour, PieceName, Piece
 
 
 class Player():
@@ -85,12 +85,3 @@ class Player():
             move_locations = get_possible_moves(game.grid, current_location)
             possible_moves += [Move(piece, current_location, loc) for loc in move_locations]
         return possible_moves
-
-
-
-
-
-
-
-
-

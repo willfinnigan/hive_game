@@ -1,5 +1,5 @@
 from hive.grid_functions import one_move_away, is_position_connected, beetle_one_move_away, can_remove_piece
-from hive.types import Piece, Grid, PieceName, Location
+from hive.game_types import Piece, Grid, PieceName, Location
 
 
 def get_ant_moves(grid: Grid, loc: Location):
@@ -114,5 +114,3 @@ def get_possible_moves(grid: Grid, location: Location):
 
     piece = stack[-1]
     return move_functions[piece.name](grid, location)
-
-

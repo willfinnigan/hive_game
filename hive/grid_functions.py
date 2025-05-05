@@ -1,7 +1,7 @@
 from __future__ import annotations
 from functools import lru_cache
 from typing import List, Tuple, NamedTuple
-from hive.types import Location, Grid, Colour, Piece, GridLocation
+from hive.game_types import Location, Grid, Colour, Piece, GridLocation
 
 
 @lru_cache(maxsize=None)

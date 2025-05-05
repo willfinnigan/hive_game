@@ -1,5 +1,5 @@
 from hive.game import Game
-from hive.types import Piece, WHITE, PieceName, BLACK
+from hive.game_types import Piece, WHITE, PieceName, BLACK
 
 red = "\033[31m"
 blue = "\033[34m"
