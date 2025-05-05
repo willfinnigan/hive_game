@@ -1,5 +1,7 @@
 # Python
 __pycache__/
+*/__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -64,3 +66,34 @@ Thumbs.db
 
 # Project specific
 *.log
+
+# Additional Python patterns
+__pypackages__/
+.python-version
+poetry.lock
+pyproject.toml.lock
+
+# PyCharm specific
+.idea_modules/
+*.iml
+*.ipr
+*.iws
+out/
+.idea_modules/
+atlassian-ide-plugin.xml
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Profiling
+.prof
+
+# Local development settings
+local_settings.py
+instance/
+.webassets-cache
+
+# Pytest
+pytest.ini
