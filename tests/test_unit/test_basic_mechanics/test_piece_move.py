@@ -1,10 +1,10 @@
 import pytest
 
-from hive import pieces
-from hive.errors import InvalidMoveError, BreaksConnectionError
-from hive.game import place_piece, move_piece
+from hive.game_engine import pieces
+from hive.game_engine.errors import InvalidMoveError, BreaksConnectionError
+from hive.game_engine.game_moves import place_piece, move_piece
 from hive.render.to_text import game_to_text
-from hive.game_types import Piece, WHITE, BLACK
+from hive.game_engine.game_state import Piece, WHITE, BLACK
 from tests.test_acceptance.test_hive_game_moves import Game
 
 def test_can_move_a_piece():

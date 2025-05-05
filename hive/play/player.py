@@ -1,12 +1,13 @@
 from __future__ import annotations
 from typing import List
 
-from hive.errors import NoQueenError
-from hive.grid_functions import get_placeable_locations
-from hive.piece_logic import get_possible_moves
+from hive.game_engine.errors import NoQueenError
+from hive.game_engine.grid_functions import get_placeable_locations
+from hive.game_engine.piece_logic import get_possible_moves
 from hive.play.move import Move
-from hive.game_types import Colour, Game, Piece
-from hive import pieces
+from hive.game_engine.game_state import Colour, Piece, Game
+from hive.game_engine.game_moves import check_queen_timely_placement
+from hive.game_engine import pieces
 
 
 class Player():
@@ -40,14 +41,14 @@ class Player():
 
     def _must_play_queen(self, game: Game) -> bool:
         try:
-            game.check_queen_exists(self.colour, moves_to_queen=3)
+            check_queen_timely_placement(game, self.colour, moves_to_queen=3)
         except NoQueenError:
             return True
         return False
 
     def _queen_placements(self, game: Game) -> List[Move]:
         possible_moves = []
-        queen = [piece for piece in self.pieces if piece.name == QUEEN][0]
+        queen = [piece for piece in self.pieces if piece.name == pieces.QUEEN][0]
         placeable_locations = get_placeable_locations(game.grid, self.colour)
         for location in placeable_locations:
             possible_moves.append(Move(queen, None, location))

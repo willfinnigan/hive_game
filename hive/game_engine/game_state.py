@@ -1,7 +1,6 @@
 from typing import Optional, Tuple, Dict
-from pyrsistent import PRecord, field, pmap_field, PMap
+from pyrsistent import PRecord, field, pmap, pmap_field, PMap
 from typing import NamedTuple
-
 
 Colour = str
 WHITE = 'WHITE'
@@ -34,6 +33,11 @@ def initial_game():
         player_turns={WHITE: 0, BLACK: 0},
         queens={}
     )
+
+def create_immutable_grid(grid_dict: dict) -> Grid:
+    """ Create a grid from a dictionary of locations and stacks. """
+    return pmap(grid_dict)
+
 
 if __name__ == "__main__":
     # Example usage

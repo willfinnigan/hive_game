@@ -1,13 +1,13 @@
 from typing import Optional
 
-from hive import pieces
-from hive.check_moves import check_is_valid_location, check_is_valid_placement, check_is_valid_move
-from hive.errors import NoQueenError
-from hive.grid_functions import pieces_around_location
-from hive.game_types import Game, Piece, Location, Colour
+from hive.game_engine import pieces
+from hive.game_engine.check_moves import check_is_valid_location, check_is_valid_placement, check_is_valid_move
+from hive.game_engine.errors import NoQueenError
+from hive.game_engine.grid_functions import pieces_around_location
+from hive.game_engine.game_state import Game, Piece, Location, Colour
 
 
-def _check_queen_timely_placement(game: Game, colour: Colour, moves_to_queen=4):
+def check_queen_timely_placement(game: Game, colour: Colour, moves_to_queen=4):
     if game.player_turns[colour] < moves_to_queen:
         return
 
@@ -33,7 +33,7 @@ def place_piece(game: Game, piece: Piece, location: Location) -> Game:
     current_turn = game.player_turns.get(piece.colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(piece.colour, current_turn + 1))
 
-    _check_queen_timely_placement(game_mutable.persistent(), piece.colour)
+    check_queen_timely_placement(game_mutable.persistent(), piece.colour)
 
     new_game = game_mutable.persistent()
     new_game = new_game.set('parent', game)  # Store reference to previous game state
@@ -75,7 +75,7 @@ def move_piece(game: Game, current_location: Location, location: Location) -> Ga
     current_turn = game.player_turns.get(piece.colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(piece.colour, current_turn + 1))
 
-    _check_queen_timely_placement(game_mutable.persistent(), piece.colour)
+    check_queen_timely_placement(game_mutable.persistent(), piece.colour)
 
     new_game = game_mutable.persistent()
     new_game = new_game.set('parent', game)  # Store reference to previous game state

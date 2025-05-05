@@ -1,6 +1,6 @@
-from hive.game_types import Piece, WHITE, BLACK, Game
-from hive.game import has_player_lost, get_winner
-from hive import pieces
+from hive.game_engine.game_state import Piece, WHITE, BLACK, Game
+from hive.game_engine.game_moves import has_player_lost, get_winner
+from hive.game_engine import pieces
 
 red = "\033[31m"
 blue = "\033[34m"

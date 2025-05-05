@@ -1,10 +1,10 @@
 import pytest
 
-from hive import pieces
-from hive.errors import NoQueenError
-from hive.game import Game, place_piece, move_piece
-from hive.piece_logic import get_possible_moves
-from hive.game_types import Piece, WHITE, BLACK
+from hive.game_engine import pieces
+from hive.game_engine.errors import NoQueenError
+from hive.game_engine.game_moves import Game, place_piece, move_piece
+from hive.game_engine.piece_logic import get_possible_moves
+from hive.game_engine.game_state import Piece, WHITE, BLACK, create_immutable_grid
 
 def initial_3_move_game() -> Game:
     game = Game()
@@ -67,11 +67,14 @@ def test_queen_possible_moves_are_1_away():
 
 def test_queen_can_not_jump_a_piece():
     queen = Piece(WHITE, pieces.QUEEN, 3)
+
     grid = {(6, 2): (queen,),
             (8, 2): (Piece(BLACK, pieces.QUEEN, 3),),
             (9, 3): (Piece(WHITE, pieces.ANT, 4),),
             (8, 4): (Piece(BLACK, pieces.ANT, 4),),
             (6, 4): (Piece(WHITE, pieces.ANT, 5),)}
+    
+    grid = create_immutable_grid(grid)
 
     moves = get_possible_moves(grid, (6, 2))
 
@@ -142,6 +145,8 @@ def test_ant_can_move_around_2_piece():
     grid = {(0, 0): (Piece(WHITE, pieces.ANT, 1),),
             (1, -1): (Piece(BLACK, pieces.ANT, 1),),
             (2, 0): (Piece(WHITE, pieces.ANT, 2),)}
+    
+    grid = create_immutable_grid(grid)
 
     possible_moves = get_possible_moves(grid, (0, 0))
     assert len(possible_moves) == 7

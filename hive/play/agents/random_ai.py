@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from typing import Union
 
-from hive.game_types import Game
+from hive.game_engine.game_state import Game
 from hive.play.move import Move, NoMove
 from hive.play.player import Player
 

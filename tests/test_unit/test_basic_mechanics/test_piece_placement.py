@@ -1,10 +1,10 @@
 import pytest
 
-from hive import pieces
-from hive.game import place_piece
-from hive.game_types import Piece, WHITE, BLACK
+from hive.game_engine import pieces
+from hive.game_engine.game_moves import place_piece
+from hive.game_engine.game_state import Piece, WHITE, BLACK
 from tests.test_acceptance.test_hive_game_moves import Game
-from hive.errors import InvalidPlacementError
+from hive.game_engine.errors import InvalidPlacementError
 
 
 def test_can_place_first_piece():
