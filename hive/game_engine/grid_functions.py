@@ -211,3 +211,9 @@ def is_piece_connected_to_hive(grid: Grid, loc: Location, ignore_positions: List
         return True
     return False
 
+def are_hexes_adjacent(hex1: Location, hex2: Location) -> bool:
+    """Check if two hexes are adjacent"""
+    q1, r1 = hex1
+    q2, r2 = hex2
+    return (abs(q1 - q2) == 1 and r1 == r2) or (abs(r1 - r2) == 1 and q1 == q2) or (abs(q1 - q2) == 0 and abs(r1 - r2) == 0)
+

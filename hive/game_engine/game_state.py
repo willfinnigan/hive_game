@@ -2,6 +2,8 @@ from typing import Optional, Tuple, Dict
 from pyrsistent import PRecord, field, pmap, pmap_field, PMap
 from typing import NamedTuple
 
+from hive.game_engine.pieces import QUEEN
+
 Colour = str
 WHITE = 'WHITE'
 BLACK = 'BLACK'
@@ -27,11 +29,26 @@ class Game(PRecord):
     parent = field(initial=None)  # Self-reference to Game, can't use type='Game' directly
 
 
-def initial_game():
+def initial_game(grid: Optional[Grid] = None) -> Game:
+    if grid is None:
+        grid = pmap()
+    
+    # if grid is a dict, convert it to an immutable grid
+    if isinstance(grid, dict):
+        grid = create_immutable_grid(grid)
+
+    # Find queens if they exist
+    queens = {}
+    for loc, stack in grid.items():
+        for piece in stack:
+            if piece.name == QUEEN:
+                queens[piece.colour] = loc
+    queens = pmap(queens)
+
     return Game(
-        grid={},
+        grid=grid,
         player_turns={WHITE: 0, BLACK: 0},
-        queens={}
+        queens=queens
     )
 
 def create_immutable_grid(grid_dict: dict) -> Grid:

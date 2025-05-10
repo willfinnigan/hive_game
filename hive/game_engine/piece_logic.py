@@ -1,9 +1,10 @@
+from typing import List
 from hive.game_engine.game_state import Grid, Location
 from hive.game_engine.grid_functions import one_move_away, is_position_connected, beetle_one_move_away, can_remove_piece
 from hive.game_engine import pieces
 
 
-def get_ant_moves(grid: Grid, loc: Location):
+def get_ant_moves(grid: Grid, loc: Location) -> List[Location]:
     """Get all possible moves for an ant piece
     
     Ants can move to any empty space connected to the hive.
@@ -40,7 +41,7 @@ def get_ant_moves(grid: Grid, loc: Location):
     
     return list(visited)
 
-def get_beetle_moves(grid: Grid, loc: Location):
+def get_beetle_moves(grid: Grid, loc: Location) -> List[Location]:
     """Get all possible moves for a beetle piece
     
     Beetles can move one space in any direction, including on top of other pieces.
@@ -50,7 +51,7 @@ def get_beetle_moves(grid: Grid, loc: Location):
         return []
     return beetle_one_move_away(grid, loc, positions_to_ignore=(loc,))
 
-def get_grasshopper_moves(grid: Grid, loc: Location):
+def get_grasshopper_moves(grid: Grid, loc: Location) -> List[Location]:
     if can_remove_piece(grid, loc) == False:
         return []
 
@@ -71,7 +72,7 @@ def get_grasshopper_moves(grid: Grid, loc: Location):
 
     return jumps
 
-def get_queen_moves(grid: Grid, loc: Location):
+def get_queen_moves(grid: Grid, loc: Location) -> List[Location]:
     """Get all possible moves for a queen piece
     
     Queens can move one space in any direction, but cannot climb on top of other pieces.
@@ -81,7 +82,7 @@ def get_queen_moves(grid: Grid, loc: Location):
         return []
     return one_move_away(grid, loc)
 
-def get_spider_moves(grid: Grid, loc: Location):
+def get_spider_moves(grid: Grid, loc: Location) -> List[Location]:
     """Get all possible moves for a spider piece
     
     Spiders must move exactly 3 steps around the hive.
@@ -123,7 +124,7 @@ move_functions = {pieces.ANT: get_ant_moves,
                   pieces.SPIDER: get_spider_moves
                   }
 
-def get_possible_moves(grid: Grid, location: Location):
+def get_possible_moves(grid: Grid, location: Location) -> List[Location]:
     stack = grid.get(location)
     if not stack:
         return []

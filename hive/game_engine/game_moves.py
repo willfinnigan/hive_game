@@ -1,11 +1,14 @@
+from functools import lru_cache
 from typing import Optional
 
 from hive.game_engine import pieces
 from hive.game_engine.check_moves import check_is_valid_location, check_is_valid_placement, check_is_valid_move
 from hive.game_engine.errors import NoQueenError
-from hive.game_engine.grid_functions import pieces_around_location
-from hive.game_engine.game_state import Game, Piece, Location, Colour
+from hive.game_engine.grid_functions import pieces_around_location, positions_around_location
+from hive.game_engine.game_state import Game, Grid, Piece, Location, Colour
 
+def current_turn_colour(game: Game) -> Colour:
+    return [colour for colour, turns in game.player_turns.items() if turns == min(game.player_turns.values())][0]
 
 def check_queen_timely_placement(game: Game, colour: Colour, moves_to_queen=4):
     if game.player_turns[colour] < moves_to_queen:
@@ -13,6 +16,20 @@ def check_queen_timely_placement(game: Game, colour: Colour, moves_to_queen=4):
 
     if not game.queens.get(colour, False):
         raise NoQueenError(f"No Queen found for {colour}")
+
+@lru_cache(maxsize=None)
+def get_queen_location(grid: Grid, colour: Colour) -> Optional[Location]:
+    """Get the location of the queen for a given colour."""
+
+    # loop over grid and find queen
+    queen_location = None  # if not found, remains None
+    for location, stack in grid.items():
+        for piece in stack:
+            if piece.name == pieces.QUEEN and piece.colour == colour:
+                queen_location = location
+                break
+    return queen_location
+
 
 def place_piece(game: Game, piece: Piece, location: Location) -> Game:
     check_is_valid_location(location)
@@ -65,7 +82,6 @@ def move_piece(game: Game, current_location: Location, location: Location) -> Ga
     updated_destination_stack = destination_stack + (piece,)
     updated_grid = updated_grid.set(location, updated_destination_stack)
     
-    game_mutable = game_mutable.set('grid', updated_grid)
 
     # Update queen position if needed
     if piece.name == pieces.QUEEN:  # Fixed: QUEEN -> pieces.QUEEN
@@ -76,6 +92,8 @@ def move_piece(game: Game, current_location: Location, location: Location) -> Ga
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(piece.colour, current_turn + 1))
 
     check_queen_timely_placement(game_mutable.persistent(), piece.colour)
+
+    game_mutable = game_mutable.set('grid', updated_grid)
 
     new_game = game_mutable.persistent()
     new_game = new_game.set('parent', game)  # Store reference to previous game state
@@ -112,3 +130,44 @@ def get_winner(game) -> Optional[Colour]:
     if len(colours_still_in_game) == 1:
         return colours_still_in_game[0]
     return None
+
+# def expand_grid(grid):
+#     """Ensure the grid includes locations 1 step away from all pieces.
+#     Remove empty locations that are not adjacent to any pieces."""
+
+#     print(f"Expanding grid: {grid}")
+
+#     # First pass: collect locations to remove
+#     locations_to_remove = []
+#     for loc, stack in grid.items():
+#         if len(stack) == 0:
+#             # if all the locations around this location are empty, mark for removal
+#             all_empty = True
+#             for loc_around in positions_around_location(loc):
+#                 if loc_around in grid and len(grid[loc_around]) > 0:
+#                     all_empty = False
+#                     break
+#             if all_empty:
+#                 locations_to_remove.append(loc)
+    
+#     print(f"Locations to remove: {locations_to_remove}")
+
+#     # Remove empty locations
+#     for loc in locations_to_remove:
+#         grid = grid.discard(loc)
+
+#     # Second pass: add empty locations around pieces
+#     locations_to_add = {}
+#     for loc, stack in grid.items():
+#         if len(stack) > 0:
+#             # add the empty locations around this piece to the grid
+#             for adjacent_loc in positions_around_location(loc):
+#                 if adjacent_loc not in grid:
+#                     locations_to_add.set(adjacent_loc, ())
+    
+#     # Add new empty locations
+#     for loc, stack in locations_to_add.items():
+#         grid = grid.set(loc, stack)
+    
+#     # Update the game with the new grid
+#     return grid
