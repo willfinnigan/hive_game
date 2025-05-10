@@ -46,6 +46,11 @@ def place_piece(game: Game, piece: Piece, location: Location) -> Game:
     if piece.name == pieces.QUEEN:
         game_mutable = game_mutable.set('queens', game.queens.set(piece.colour, location))
 
+    # Remove the piece from the unplayed pieces
+    unplayed_pieces = game.unplayed_pieces.get(piece.colour, ())
+    updated_unplayed_pieces = tuple(p for p in unplayed_pieces if p != piece)
+    game_mutable = game_mutable.set('unplayed_pieces', game.unplayed_pieces.set(piece.colour, updated_unplayed_pieces))
+
     # Increment the player's turn count
     current_turn = game.player_turns.get(piece.colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(piece.colour, current_turn + 1))

@@ -5,7 +5,7 @@ from typing import Union, Callable, List, Tuple
 from hive.game_engine import pieces
 from hive.game_engine.game_state import Colour, Game
 from hive.game_engine.grid_functions import pieces_around_location
-from hive.play.move import Move, NoMove
+from hive.game_engine.move import Move, NoMove, get_players_possible_moves_or_placements
 from hive.play.player import Player
 
 
@@ -108,7 +108,7 @@ class ScoreMovesAI(Player):
         self.scores = scores or MoveScores()
 
     def get_move(self, game) -> Union[Move|NoMove]:
-        possible_moves = self.possible_moves(game)
+        possible_moves = get_players_possible_moves_or_placements(self.colour, game)
         if len(possible_moves) == 0:
             return NoMove(self.colour)
 

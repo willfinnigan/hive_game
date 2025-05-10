@@ -3,7 +3,7 @@ import os
 import tempfile
 from hive.game_engine.game_state import Game, Piece, initial_game, WHITE, BLACK
 from hive.game_engine import pieces
-from hive.play.move import Move, NoMove
+from hive.game_engine.move import Move, NoMove
 from hive.trajectory.boardspace import (
     MoveString, 
     get_piece_id, 

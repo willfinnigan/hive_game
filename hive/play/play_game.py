@@ -2,11 +2,12 @@ from hive.ml.game_to_graph import Graph
 from hive.ml.graph_to_pyg import game_to_pytorch
 from hive.play.agents.board_score.ai_generated_board_score import score_board_advanced, score_board_queens_improved
 from hive.play.agents.board_score.simple_board_score import score_board_queens
+from hive.play.agents.minimax_ai import MinimaxAI
 from hive.play.agents.random_ai import RandomAI
 from hive.game_engine.game_moves import current_turn_colour, get_winner
 from hive.play.agents.scored_board_state_ai import ScoreBoardIn1Move_AI
 from hive.play.agents.scored_moves_based_ai import ScoreMovesAI
-from hive.play.move import NoMove
+from hive.game_engine.move import NoMove
 from hive.play.player import Player
 from hive.render.to_text import game_to_text
 from hive.game_engine.game_state import WHITE, BLACK, Game, initial_game
@@ -44,17 +45,18 @@ def play(player_1, player_2, game=None, max_turns=None):
 
 
 if __name__ == '__main__':
-    #ai_1 = RandomAI(WHITE)
-    #ai_2 = RandomAI(BLACK)
+    ai_1 = RandomAI(WHITE)
+    ai_2 = RandomAI(BLACK)
 
-    ai_1 = ScoreMovesAI(WHITE)
-    ai_2 = ScoreBoardIn1Move_AI(BLACK, score_method=score_board_queens)
+    #ai_1 = ScoreMovesAI(WHITE)
+    #ai_1 = MinimaxAI(WHITE, max_depth=3, eval_function=score_board_queens, use_iterative_deepening = True, time_limit = 4)
+    #ai_2 = ScoreBoardIn1Move_AI(BLACK, score_method=score_board_queens)
 
-    max_turns = 100
+    max_turns = 1000
 
-    winner = None
-    while winner is None:
-        winner = play(ai_1, ai_2, max_turns=max_turns)
+    #winner = None
+    #while winner is None:
+    winner = play(ai_1, ai_2, max_turns=max_turns)
 
 
 

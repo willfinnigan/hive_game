@@ -30,10 +30,21 @@ def graph_to_pytorch(graph: Graph) -> Data:
             edge_indices.append([i, n_node_idx])
             edge_features.append(node.edge_features[j])
 
+    move_edge_idxs = []
+    for i, edge_feats in enumerate(edge_features):
+
+        # if the edge is a candidate move, add it to the list
+        if edge_feats[3] == 1:
+            # if edge source node is the current player, add it
+            if graph.nodes[edge_indices[i][0]].piece.colour == graph.current_colour:
+                move_edge_idxs.append(i)
+
+
     # Create the Data object
     data = Data(x=torch.tensor(node_features, dtype=torch.float), 
                 edge_index=torch.tensor(edge_indices, dtype=torch.long).t().contiguous(), 
-                edge_attr=torch.tensor(edge_features, dtype=torch.float))
+                edge_attr=torch.tensor(edge_features, dtype=torch.float),
+                candidate_moves=torch.tensor(edge_indices, dtype=torch.long)[move_edge_idxs])
     
     return data
 
@@ -42,8 +53,7 @@ def game_to_pytorch(game: Game) -> Data:
     Convert a game representation to a PyTorch Geometric Data object.
     """
     # get the current player turn
-    current_colour = current_turn_colour(game)
-    graph = Graph(game.grid, current_colour)
+    graph = Graph(game)
     data = graph_to_pytorch(graph)
     return data
 
@@ -56,7 +66,7 @@ if __name__ == '__main__':
             (-1, -1): (Piece(colour="WHITE", name="SPIDER", number=1),),}
     game = initial_game(grid=grid)
     
-    graph = Graph(game.grid, current_turn_colour(game))
+    graph = Graph(game)
     data = graph_to_pytorch(graph)
 
     print(data)

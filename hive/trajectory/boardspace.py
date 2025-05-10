@@ -31,7 +31,7 @@ import os
 from hive.game_engine.game_state import Game, Piece, Location, Colour, WHITE, BLACK
 from hive.game_engine import pieces
 from hive.game_engine.grid_functions import positions_around_location
-from hive.play.move import Move, NoMove
+from hive.game_engine.move import Move, NoMove
 
 
 # Mapping between internal color representation and BoardSpace notation

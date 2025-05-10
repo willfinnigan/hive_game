@@ -131,3 +131,5 @@ def get_possible_moves(grid: Grid, location: Location) -> List[Location]:
 
     piece = stack[-1]
     return move_functions[piece.name](grid, location)
+
+

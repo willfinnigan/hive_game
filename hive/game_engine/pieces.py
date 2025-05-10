@@ -6,3 +6,4 @@ SPIDER = 'SPIDER'
 BLANK = 'BLANK' 
 
 EMPTY = 'EMPTY'
+
