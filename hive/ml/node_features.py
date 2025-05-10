@@ -3,10 +3,9 @@
 from typing import Callable, List, Optional
 
 from hive.game_engine import pieces
-from hive.game_engine.game_moves import get_queen_location
+from hive.game_engine.game_moves import get_queen_location, opposite_colour
 from hive.game_engine.game_state import Colour, Grid, Location, Piece
 from hive.game_engine.piece_logic import get_possible_moves
-from hive.ml.utils import opposite_colour
 
 NodeFeatureMethod = Callable[[Optional[Piece], Location, int, Colour, Grid], List[float|int]]
 

@@ -13,5 +13,5 @@ class RandomAI(Player):
     def get_move(self, game: Game) -> Union[Move|NoMove]:
         possible_moves = self.possible_moves(game)
         if len(possible_moves) == 0:
-            return NoMove(self.colour)
+            return NoMove(self.colour, game)
         return random.choice(possible_moves)

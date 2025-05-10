@@ -10,13 +10,18 @@ class Move:
     piece: Piece
     current_location: Optional[Location]
     new_location: Location
+    game: Game
+    mv_game: Optional[Game] = None
 
-    def play(self, game: Game) -> Game:
-        if self.current_location is None:
-            game = place_piece(game, self.piece, self.new_location)
-        else:
-            game = move_piece(game, self.current_location, self.new_location)
-        return game
+
+    def play(self) -> Game:
+        if self.mv_game is None:
+            if self.current_location is None:
+                self.mv_game = place_piece(self.game, self.piece, self.new_location)
+            else:
+                self.mv_game = move_piece(self.game, self.current_location, self.new_location)
+
+        return self.mv_game
 
     def __repr__(self):
         piece_name = f"{self.piece.colour}_{self.piece.name}_{self.piece.number}"
@@ -28,10 +33,14 @@ class Move:
 @dataclass
 class NoMove:
     colour: Colour
+    game: Game
+    mv_game: Optional[Game] = None
 
-    def play(self, game: Game) -> Game:
-        game = pass_move(game, self.colour)
-        return game
+    def play(self) -> Game:
+        if self.mv_game is None:
+            # Pass the turn
+            self.mv_game = pass_move(self.game, self.colour)
+        return self.mv_game
     
     def __repr__(self):
         return f"Pass ({self.colour})"

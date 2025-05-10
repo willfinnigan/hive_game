@@ -2,16 +2,12 @@ import random
 from dataclasses import dataclass
 from typing import Union, Callable, List, Tuple
 
-from v1.hive.game.game import Game
-from v1.hive.game.grid_functions import pieces_around_location
-from v1.hive.game.pieces.ant import Ant
-from v1.hive.game.pieces.beetle import Beetle
-from v1.hive.game.pieces.grasshopper import GrassHopper
-from v1.hive.game.pieces.queen import Queen
-from v1.hive.game.pieces.spider import Spider
-from v1.hive.game.types_and_errors import Colour
-from v1.hive.play.move import Move, NoMove
-from v1.hive.play.player import Player
+from hive.game_engine import pieces
+from hive.game_engine.game_state import Colour, Game
+from hive.game_engine.grid_functions import pieces_around_location
+from hive.play.move import Move, NoMove
+from hive.play.player import Player
+
 
 Strategy = Callable[[List[Move], Game], List[Tuple[int, Move]]]
 
@@ -27,37 +23,52 @@ class MoveScores:
     play_spider: int = 1
     play_queen: int = 3
 
-def score_queen(move, around_current_location, around_move, scores) -> int:
-    opposing_queens = [piece for piece in around_current_location if piece.colour != move.piece.colour and isinstance(piece, Queen)]
-    if len(opposing_queens) > 0:
-        return scores.piece_already_at_queen  # already next to a queen - don't move!
-    opposing_queens = [piece for piece in around_move if piece.colour != move.piece.colour and isinstance(piece, Queen)]
-    if len(opposing_queens) > 0:
-        return scores.move_to_queen  # move next to enemy queen
+def score_move_by_queen(move, 
+                        locs_around_current_which_contain_pieces, 
+                        locs_around_move_which_contain_pieces, 
+                        scores: MoveScores) -> int:
 
-    allied_queens_current = [piece for piece in around_current_location if piece.colour == move.piece.colour and isinstance(piece, Queen)]
-    if len(allied_queens_current) > 0:
-        allied_queens_new = [piece for piece in around_move if piece.colour == move.piece.colour and isinstance(piece, Queen)]
-        if len(allied_queens_new) == 0:
+    # look at current location - are we already attacking enemy queen?
+    for loc in locs_around_current_which_contain_pieces:
+        stack = move.game.grid.get(loc, ())
+        piece = stack[-1] if stack else None
+        if piece.name == pieces.QUEEN and piece.colour != move.piece.colour:
+            return scores.piece_already_at_queen  # already next to a enemy queen - don't move!
+
+        
+    # look at new location - are we attacking enemy queen?
+    for loc in locs_around_move_which_contain_pieces:
+        stack = move.game.grid.get(loc, ())
+        piece = stack[-1] if stack else None
+        if piece is not None and piece.name == pieces.QUEEN and piece.colour != move.piece.colour:
+            return scores.move_to_queen  # move next to enemy queen
+        
+
+    # look at current location - are there allied queens we should move away from
+    for loc in locs_around_move_which_contain_pieces:
+        stack = move.game.grid.get(loc, ())
+        piece = stack[-1] if stack else None
+        if piece is not None and piece.name == pieces.QUEEN and piece.colour == move.piece.colour:
             return scores.move_away_from_queen
-
+    
+    # otherwise return 0
     return 0
+    
 
 def score_play_piece(move, scores) -> int:
-    if move.piece.location is not None:
-        return 0
+    if move.current_location is not None:
+        raise ValueError("Move must be a placement move to score it as placement")
 
-    if isinstance(move.piece, Ant):
+    if move.piece.name == pieces.ANT:
         return scores.play_ant
-    if isinstance(move.piece, Beetle):
+    if move.piece.name == pieces.BEETLE:
         return scores.play_beetle
-    if isinstance(move.piece, GrassHopper):
+    if move.piece.name == pieces.GRASSHOPPER:
         return scores.play_grasshopper
-    if isinstance(move.piece, Spider):
+    if move.piece.name == pieces.SPIDER:
         return scores.play_spider
-    if isinstance(move.piece, Queen):
+    if move.piece.name == pieces.QUEEN:
         return scores.play_queen
-
     return 0
 
 
@@ -69,12 +80,15 @@ def prioritise_moves(moves: List[Move], game: Game, scores: MoveScores = None) -
     scored_moves = []
     for move in moves:
         score = 0
-        if move.piece.location is not None:
-            around_current_location = pieces_around_location(game.grid, move.piece.location)
-            around_move = pieces_around_location(game.grid, move.location)
+        if move.current_location is not None:
+            locs_around_current_which_contain_pieces = pieces_around_location(game.grid, move.current_location)
+            locs_around_move_which_contain_pieces = pieces_around_location(game.grid, move.new_location)
 
             # score the move
-            score += score_queen(move, around_current_location, around_move, scores)
+            score += score_move_by_queen(move, locs_around_current_which_contain_pieces, locs_around_move_which_contain_pieces, scores)
+        else:
+            # score the piece being played
+            score += score_play_piece(move, scores)
 
         scored_moves.append((score, move))
 
@@ -83,9 +97,10 @@ def prioritise_moves(moves: List[Move], game: Game, scores: MoveScores = None) -
     scored_moves = sorted(scored_moves, key=lambda x: x[0], reverse=True)
     return scored_moves
 
+
+
 class ScoreMovesAI(Player):
     """ Plays moves according to a move scoring policy
-    Still pretty poor AI, but better than random.
     """
 
     def __init__(self, colour: Colour, scores: MoveScores = None):
@@ -102,3 +117,4 @@ class ScoreMovesAI(Player):
 
         # return the best move
         return scored_moves[0][1]
+

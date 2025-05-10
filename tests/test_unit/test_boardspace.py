@@ -64,18 +64,18 @@ def test_move_conversion_simple_game():
     
     # First move: Place white queen
     white_queen = Piece(colour=WHITE, name=pieces.QUEEN, number=1)
-    move1 = Move(piece=white_queen, current_location=None, new_location=(0, 0))
+    move1 = Move(piece=white_queen, current_location=None, new_location=(0, 0), game=game)
     
     # Convert to BoardSpace notation
     move_str1 = move_to_boardspace(game, move1)
     assert move_str1.raw_string == "wQ1"
     
     # Apply the move
-    game = move1.play(game)
+    game = move1.play()
     
     # Second move: Place black queen next to white queen
     black_queen = Piece(colour=BLACK, name=pieces.QUEEN, number=1)
-    move2 = Move(piece=black_queen, current_location=None, new_location=(2, 0))
+    move2 = Move(piece=black_queen, current_location=None, new_location=(2, 0), game=game)
     
     # Convert to BoardSpace notation
     move_str2 = move_to_boardspace(game, move2)
@@ -95,7 +95,7 @@ def test_pass_move_conversion():
     game = initial_game()
     
     # Create a pass move
-    pass_move = NoMove(WHITE)
+    pass_move = NoMove(WHITE, game)
     
     # Convert to BoardSpace notation
     move_str = move_to_boardspace(game, pass_move)

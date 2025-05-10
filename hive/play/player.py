@@ -51,7 +51,7 @@ class Player():
         queen = [piece for piece in self.pieces if piece.name == pieces.QUEEN][0]
         placeable_locations = get_placeable_locations(game.grid, self.colour)
         for location in placeable_locations:
-            possible_moves.append(Move(queen, None, location))
+            possible_moves.append(Move(queen, None, location, game))
         return possible_moves
 
     def _all_placements(self, game: Game) -> List[Move]:
@@ -70,7 +70,7 @@ class Player():
 
         for piece in unplaced_pieces:
             for location in placeable_locations:
-                possible_moves.append(Move(piece, None, location))
+                possible_moves.append(Move(piece, None, location, game))
 
         return possible_moves
 
@@ -85,5 +85,5 @@ class Player():
         possible_moves = []
         for piece, current_location in moveable_pieces:
             move_locations = get_possible_moves(game.grid, current_location)
-            possible_moves += [Move(piece, current_location, loc) for loc in move_locations]
+            possible_moves += [Move(piece, current_location, loc, game) for loc in move_locations]
         return possible_moves

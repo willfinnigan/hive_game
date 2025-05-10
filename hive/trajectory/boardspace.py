@@ -374,11 +374,11 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         # For pass moves, we need to extract the color from the piece_id if available
         # Otherwise, determine the color of the player whose turn it is
         if hasattr(move_str, 'pass_color') and move_str.pass_color:
-            return NoMove(move_str.pass_color)
+            return NoMove(move_str.pass_color, game)
         else:
             colors = list(game.player_turns.keys())
             current_color = min(colors, key=lambda c: game.player_turns[c])
-            return NoMove(current_color)
+            return NoMove(current_color, game)
     
     # Parse the piece ID
     piece_id = move_str.piece_id
@@ -391,7 +391,7 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
     
     # First move of the game
     if move_str.reference_piece_id is None:
-        return Move(piece=piece, current_location=None, new_location=(0, 0))
+        return Move(piece=piece, current_location=None, new_location=(0, 0), game=game)
     
     # Find the moving piece in the game
     piece_info = find_piece_by_id(game, piece_id)
@@ -408,7 +408,7 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         if ref_piece_info is None:
             raise ValueError(f"Reference piece not found: {move_str.reference_piece_id}")
         _, ref_loc = ref_piece_info
-        return Move(piece=piece, current_location=current_location, new_location=ref_loc)
+        return Move(piece=piece, current_location=current_location, new_location=ref_loc, game=game)
     
     # Find the reference piece
     ref_piece_info = find_piece_by_id(game, move_str.reference_piece_id)
@@ -445,7 +445,7 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
     else:
         raise ValueError(f"Invalid direction indicator: {direction_indicator}")
     
-    return Move(piece=piece, current_location=current_location, new_location=target_loc)
+    return Move(piece=piece, current_location=current_location, new_location=target_loc, game=game)
 
 
 def save_trajectory(moves: List[MoveString], filename: str):
@@ -495,7 +495,7 @@ def replay_trajectory(moves: List[MoveString]) -> Game:
     
     for move_str in moves:
         move = boardspace_to_move(game, move_str)
-        game = move.play(game)
+        game = move.play()
     
     return game
 

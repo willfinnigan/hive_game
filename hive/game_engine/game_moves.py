@@ -5,7 +5,7 @@ from hive.game_engine import pieces
 from hive.game_engine.check_moves import check_is_valid_location, check_is_valid_placement, check_is_valid_move
 from hive.game_engine.errors import NoQueenError
 from hive.game_engine.grid_functions import pieces_around_location, positions_around_location
-from hive.game_engine.game_state import Game, Grid, Piece, Location, Colour
+from hive.game_engine.game_state import BLACK, WHITE, Game, Grid, Piece, Location, Colour
 
 def current_turn_colour(game: Game) -> Colour:
     return [colour for colour, turns in game.player_turns.items() if turns == min(game.player_turns.values())][0]
@@ -131,43 +131,11 @@ def get_winner(game) -> Optional[Colour]:
         return colours_still_in_game[0]
     return None
 
-# def expand_grid(grid):
-#     """Ensure the grid includes locations 1 step away from all pieces.
-#     Remove empty locations that are not adjacent to any pieces."""
-
-#     print(f"Expanding grid: {grid}")
-
-#     # First pass: collect locations to remove
-#     locations_to_remove = []
-#     for loc, stack in grid.items():
-#         if len(stack) == 0:
-#             # if all the locations around this location are empty, mark for removal
-#             all_empty = True
-#             for loc_around in positions_around_location(loc):
-#                 if loc_around in grid and len(grid[loc_around]) > 0:
-#                     all_empty = False
-#                     break
-#             if all_empty:
-#                 locations_to_remove.append(loc)
-    
-#     print(f"Locations to remove: {locations_to_remove}")
-
-#     # Remove empty locations
-#     for loc in locations_to_remove:
-#         grid = grid.discard(loc)
-
-#     # Second pass: add empty locations around pieces
-#     locations_to_add = {}
-#     for loc, stack in grid.items():
-#         if len(stack) > 0:
-#             # add the empty locations around this piece to the grid
-#             for adjacent_loc in positions_around_location(loc):
-#                 if adjacent_loc not in grid:
-#                     locations_to_add.set(adjacent_loc, ())
-    
-#     # Add new empty locations
-#     for loc, stack in locations_to_add.items():
-#         grid = grid.set(loc, stack)
-    
-#     # Update the game with the new grid
-#     return grid
+def opposite_colour(colour: str) -> str:
+    """Return the opposite colour."""
+    if colour == WHITE:
+        return BLACK
+    elif colour == BLACK:
+        return WHITE
+    else:
+        raise ValueError(f"Invalid colour: {colour}. Expected 'WHITE' or 'BLACK'.")
