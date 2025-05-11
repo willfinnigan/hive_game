@@ -1,5 +1,5 @@
 from hive.game_engine import pieces
-from hive.game_engine.game_moves import Game, place_piece
+from hive.game_engine.game_functions import Game, place_piece
 from hive.game_engine.game_state import Piece, WHITE, BLACK
 
 

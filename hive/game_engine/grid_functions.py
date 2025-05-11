@@ -1,6 +1,8 @@
 from __future__ import annotations
 from functools import lru_cache
 from typing import List, Tuple, NamedTuple
+from typing import TYPE_CHECKING
+from hive.game_engine.errors import BreaksConnectionError, InvalidLocationError, InvalidMoveError, InvalidPlacementError
 from hive.game_engine.game_state import Location, Grid, Colour, Piece, GridLocation
 
 
@@ -217,3 +219,49 @@ def are_hexes_adjacent(hex1: Location, hex2: Location) -> bool:
     q2, r2 = hex2
     return (abs(q1 - q2) == 1 and r1 == r2) or (abs(r1 - r2) == 1 and q1 == q2) or (abs(q1 - q2) == 0 and abs(r1 - r2) == 0)
 
+def check_is_valid_placement(grid: Grid, loc: Location, colour: Colour):
+    """Place a piece for the first time can not be touching a piece from opposite colour."""
+
+    # first piece can be anywhere
+    if len(grid) == 0:
+        return
+
+    # piece must be placed next to another piece
+    piece_locations = pieces_around_location(grid, loc)
+    if len(piece_locations) == 0:
+        raise InvalidPlacementError(f"Not connected")
+
+    # if this is the second piece, can go anywhere
+    if len(grid) == 1:
+        return
+
+    # if not the first piece of that colour, can only go next to pieces of the same colour
+    stacks = [grid.get(loc) for loc in piece_locations]
+    colours_surrounding = set([p[-1].colour for p in stacks])
+    if len(colours_surrounding) > 1 or colour not in colours_surrounding:
+        raise InvalidPlacementError(
+            f"{colour} piece can not be placed next to pieces of other color: {colours_surrounding}")
+
+
+def check_is_valid_move(grid, current_loc, loc: Location):
+
+    # are all the positions around the current location still connected if the piece is removed?
+    stack = grid.get(current_loc)
+    if stack is None:
+        raise InvalidMoveError(f"No piece at location {current_loc}")
+    elif len(stack) >= 2:
+        pass
+    elif can_remove_piece(grid, current_loc) == False:
+        raise BreaksConnectionError
+
+    # check piece will be connected to the hive once moved
+    piece_locations_new = pieces_around_location(grid, loc)
+    if len(stack) == 1:
+        piece_locations_new = [loc for loc in piece_locations_new if loc != current_loc]
+    if len(piece_locations_new) == 0:
+        raise InvalidPlacementError(f"Not connected")
+
+def check_is_valid_location(loc: Location):
+    """Sum of locations must be even"""
+    if sum(loc) % 2 != 0:
+        raise InvalidLocationError(f"Invalid location - {loc} does not sum to even")

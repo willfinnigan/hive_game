@@ -1,13 +1,10 @@
-
-
-
 from platform import node
 from typing import List, Optional
 
-from hive.game_engine.game_moves import current_turn_colour
+from hive.game_engine.game_functions import current_turn_colour
 from hive.game_engine.game_state import WHITE, Colour, Game, Grid, Piece, initial_game
 from hive.game_engine.grid_functions import get_placeable_locations, positions_around_location
-from hive.game_engine.piece_logic import get_possible_moves
+from hive.game_engine.moves import get_possible_moves
 from hive.ml.node_features import NodeFeatureMethod
 from hive.ml.node_features import all_node_feature_methods
 
@@ -28,7 +25,7 @@ class Graph():
     
         for node in self.nodes:
             node.create_edges(self)
-            node.featurise(self, all_node_feature_methods, )
+            node.featurise(self, all_node_feature_methods)
 
     def _create_nodes_in_play(self):
         """Create nodes from the grid."""
@@ -64,6 +61,17 @@ class Graph():
                     self.nodes.append(node)
                     self.node_dict[node.node_id] = node
                     self.nodes_by_location[node.loc_id] = node
+
+        # add an empty node above every stack
+        for loc in locations:
+            stack = self.game.grid.get(loc, ())
+            if len(stack) > 0:
+                # add an empty node above the stack
+                node = Node(loc, len(stack)+1, None)
+                self.nodes.append(node)
+                self.node_dict[node.node_id] = node
+                self.nodes_by_location[node.loc_id] = node
+
 
     def _create_nodes_unplaced(self):
 
@@ -182,7 +190,7 @@ class Node():
                 # add the retro move
                 node.edges.append(self)
                 node.edge_features.append([0, 0, 0, 0, 1]) # retro move edge
-
+            return
 
         # if height is 0 - there is no piece - so no moves
         if self.height == 0:
@@ -192,25 +200,30 @@ class Node():
         stack_height = len(graph.game.grid.get(self.location, ()))
         if self.height != stack_height:
             return
-        
-        # get the moves for this piece
-        moves = get_possible_moves(graph.game.grid, self.location)
-        for move in moves:
 
-            # get the height at move location
-            move_height = len(graph.game.grid.get(move, ()))
+        if self.location is not None:
+            # get the moves for this piece
+            moves = get_possible_moves(graph.game.grid, self.location, stack_height-1)
 
-            # get the node for the move
-            node = graph.nodes_by_location.get((move, move_height))
-            if node is None:
-                raise ValueError(f"Node {self.node_id} has no move node in the graph - but one was expected")
-            
-            self.edges.append(node)
-            self.edge_features.append([0, 0, 0, 1, 0]) # move edge
+            print(moves)
 
-            # add the retro move
-            node.edges.append(self)
-            node.edge_features.append([0, 0, 0, 0, 1]) # retro move edge
+            for move in moves:
+                move_loc = move.new_location
+                move_height = move.new_stack_idx
+
+                print(move)
+
+                # get the node for the move
+                node = graph.nodes_by_location.get((move_loc, move_height))
+                if node is None:
+                    raise ValueError(f"Trying to create a move edge to {(move_loc, move_height)}, but its not in the graph \n nodes by location: {graph.nodes_by_location}")
+
+                self.edges.append(node)
+                self.edge_features.append([0, 0, 0, 1, 0]) # move edge
+
+                # add the retro move
+                node.edges.append(self)
+                node.edge_features.append([0, 0, 0, 0, 1]) # retro move edge
 
 
 

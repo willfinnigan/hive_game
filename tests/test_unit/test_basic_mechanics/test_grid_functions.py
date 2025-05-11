@@ -1,5 +1,5 @@
 from hive.game_engine import pieces
-from hive.game_engine.game_moves import Game
+from hive.game_engine.game_functions import Game
 from hive.game_engine.grid_functions import get_placeable_locations, can_remove_piece, is_piece_connected_to_hive
 from hive.render.to_text import game_to_text
 from hive.game_engine.game_state import WHITE, Piece, BLACK, create_immutable_grid

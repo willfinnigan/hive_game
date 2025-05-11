@@ -1,7 +1,7 @@
 import pytest
 
 from hive.game_engine import pieces
-from hive.game_engine.game_moves import place_piece
+from hive.game_engine.game_functions import place_piece
 from hive.game_engine.game_state import Piece, WHITE, BLACK
 from tests.test_acceptance.test_hive_game_moves import Game
 from hive.game_engine.errors import InvalidPlacementError

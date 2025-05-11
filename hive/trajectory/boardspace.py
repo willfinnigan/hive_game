@@ -31,7 +31,7 @@ import os
 from hive.game_engine.game_state import Game, Piece, Location, Colour, WHITE, BLACK
 from hive.game_engine import pieces
 from hive.game_engine.grid_functions import positions_around_location
-from hive.game_engine.move import Move, NoMove
+from hive.game_engine.moves import Move, NoMove
 
 
 # Mapping between internal color representation and BoardSpace notation
@@ -374,11 +374,11 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         # For pass moves, we need to extract the color from the piece_id if available
         # Otherwise, determine the color of the player whose turn it is
         if hasattr(move_str, 'pass_color') and move_str.pass_color:
-            return NoMove(move_str.pass_color, game)
+            return NoMove(move_str.pass_color)
         else:
             colors = list(game.player_turns.keys())
             current_color = min(colors, key=lambda c: game.player_turns[c])
-            return NoMove(current_color, game)
+            return NoMove(current_color)
     
     # Parse the piece ID
     piece_id = move_str.piece_id
@@ -391,7 +391,7 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
     
     # First move of the game
     if move_str.reference_piece_id is None:
-        return Move(piece=piece, current_location=None, new_location=(0, 0), game=game)
+        return Move(piece=piece, current_location=None, current_stack_idx=None, new_location=(0, 0), new_stack_idx=0)
     
     # Find the moving piece in the game
     piece_info = find_piece_by_id(game, piece_id)
@@ -399,8 +399,10 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
     # If the piece doesn't exist in the game, it's a placement
     if piece_info is None:
         current_location = None
+        current_stack_idx = None
     else:
         _, current_location = piece_info
+        current_stack_idx = len(game.grid[current_location]) - 1
     
     # Beetle moving onto another piece
     if move_str.direction_indicator is None:
@@ -408,7 +410,7 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         if ref_piece_info is None:
             raise ValueError(f"Reference piece not found: {move_str.reference_piece_id}")
         _, ref_loc = ref_piece_info
-        return Move(piece=piece, current_location=current_location, new_location=ref_loc, game=game)
+        return Move(piece=piece, current_location=current_location, current_stack_idx=current_stack_idx, new_location=ref_loc)
     
     # Find the reference piece
     ref_piece_info = find_piece_by_id(game, move_str.reference_piece_id)
@@ -444,8 +446,12 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
             target_loc = (ref_loc[0] + 1, ref_loc[1] + 1)
     else:
         raise ValueError(f"Invalid direction indicator: {direction_indicator}")
-    
-    return Move(piece=piece, current_location=current_location, new_location=target_loc, game=game)
+
+    new_stack_height = len(game.grid.get(target_loc, []))
+
+    return Move(piece=piece,
+                current_location=current_location, current_stack_idx=current_stack_idx,
+                new_location=target_loc, new_stack_idx=new_stack_height)
 
 
 def save_trajectory(moves: List[MoveString], filename: str):
@@ -495,7 +501,7 @@ def replay_trajectory(moves: List[MoveString]) -> Game:
     
     for move_str in moves:
         move = boardspace_to_move(game, move_str)
-        game = move.play()
+        game = move.play(game)
     
     return game
 
@@ -508,7 +514,7 @@ def record_game(game_controller, filename: str):
         game_controller: The game controller
         filename: The filename to save to
     """
-    from hive.game_engine.game_moves import get_winner
+    from hive.game_engine.game_functions import get_winner
     
     original_play = game_controller.play
     moves = []

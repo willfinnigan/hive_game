@@ -1,8 +1,8 @@
 import pytest
 
 from hive.game_engine import pieces
-from hive.game_engine.game_moves import Game, move_piece, place_piece
-from hive.game_engine.piece_logic import get_possible_moves
+from hive.game_engine.game_functions import Game, move_piece, place_piece
+from hive.game_engine.moves import get_possible_moves
 from hive.game_engine.game_state import Piece, WHITE, BLACK, create_immutable_grid, initial_game
 from hive.render.to_text import game_to_text
 
@@ -26,16 +26,17 @@ def test_ladybug_basic_movement():
     print(game_to_text(game))
     
     # Get possible moves for the ladybug
-    possible_moves = get_possible_moves(game.grid, (0, 0))
+    possible_moves = get_possible_moves(game.grid, (0, 0), 0)
 
     print("Possible moves for ladybug:", possible_moves)
 
     # Make each move and display the grid
     for move in possible_moves:
-        new_game = move_piece(game, (0, 0), move)
+        new_game = move.play(game)
         print(game_to_text(new_game))
 
-    assert sorted(possible_moves) == sorted([(3, -1), (3, 1), (5, -1), (5, 1), (6, 0)]), f"Possible moves dont match: {sorted(possible_moves)}"
+    move_locations = [mv.new_location for mv in possible_moves]
+    assert sorted(move_locations) == sorted([(3, -1), (3, 1), (5, -1), (5, 1), (6, 0)]), f"Possible moves dont match: {sorted(possible_moves)}"
 
 
 def test_ladybug_cant_move_when_pinned():
@@ -52,7 +53,7 @@ def test_ladybug_cant_move_when_pinned():
     game = initial_game(grid=grid)
 
     # Get possible moves for the ladybug - should be empty because it's pinned
-    possible_moves = get_possible_moves(game.grid, (0, 0))
+    possible_moves = get_possible_moves(game.grid, (0, 0), 0)
 
     print("Possible moves for pinned ladybug:", possible_moves)
 

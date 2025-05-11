@@ -2,7 +2,8 @@ import random
 from typing import Callable, Union, List
 
 from hive.game_engine.game_state import Colour, Game
-from hive.game_engine.move import Move, NoMove, get_players_possible_moves_or_placements
+from hive.game_engine.moves import Move, NoMove
+from hive.game_engine.player_functions import get_players_possible_moves_or_placements
 from hive.play.player import Player
 from hive.play.agents.board_score.simple_board_score import score_board_queens
 

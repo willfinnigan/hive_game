@@ -45,7 +45,7 @@ def create_standard_pieces(colour: str) -> Tuple[Piece]:
             Piece(colour, pieces.SPIDER, 1),
             Piece(colour, pieces.SPIDER, 2))
 
-def initial_game(grid: Optional[Grid] = None,
+def initial_game(grid: Optional[Grid|dict] = None,
                  pieces_function = create_standard_pieces) -> Game:
     white_pieces = pieces_function(WHITE)
     black_pieces = pieces_function(BLACK)

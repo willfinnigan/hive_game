@@ -3,9 +3,10 @@ import time
 from typing import Dict, List, Tuple, Optional, Union, Callable
 
 from hive.game_engine.game_state import Colour, Game
-from hive.game_engine.move import Move, NoMove, get_players_possible_moves_or_placements
+from hive.game_engine.moves import Move, NoMove
+from hive.game_engine.player_functions import get_players_possible_moves_or_placements
 from hive.play.player import Player
-from hive.game_engine.game_moves import opposite_colour
+from hive.game_engine.game_functions import opposite_colour
 from hive.play.agents.board_score.simple_board_score import score_board_queens
 from hive.play.agents.board_score.ai_generated_board_score import score_board_advanced
 
@@ -100,7 +101,7 @@ class MinimaxAI(Player):
         """
         possible_moves = get_players_possible_moves_or_placements(self.colour, game)
         if len(possible_moves) == 0:
-            return NoMove(self.colour, game)
+            return NoMove(self.colour)
         
         # Reset statistics for this move search
         self.nodes_evaluated = 0

@@ -3,9 +3,9 @@
 from typing import Callable, List, Optional
 
 from hive.game_engine import pieces
-from hive.game_engine.game_moves import get_queen_location, opposite_colour
+from hive.game_engine.game_functions import get_queen_location, opposite_colour
 from hive.game_engine.game_state import Colour, Grid, Location, Piece
-from hive.game_engine.piece_logic import get_possible_moves
+from hive.game_engine.moves import get_possible_moves
 
 NodeFeatureMethod = Callable[[Optional[Piece], Location, int, Colour, Grid], List[float|int]]
 
@@ -55,7 +55,7 @@ def featurise_moves(piece: Optional[Piece], loc: Location, i: int, colour: Colou
     if stack is None or len(stack) == 0 or stack[-1] != piece:
         return [0, 0, 0]
 
-    legal_moves = get_possible_moves(grid, loc)  # returns a list of locations
+    legal_moves = get_possible_moves(grid, loc, len(stack)-1)  # returns a list of locations
     has_legal_moves = 1 if len(legal_moves) > 0 else 0
 
     enemy_colour = opposite_colour(colour)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List
 
-from hive.game_engine.move import Move
+from hive.game_engine.player_functions import Move
 from hive.game_engine.game_state import Colour
 
 

@@ -3,7 +3,7 @@
 import torch
 from torch_geometric.data import Data
 
-from hive.game_engine.game_moves import current_turn_colour
+from hive.game_engine.game_functions import current_turn_colour
 from hive.game_engine.game_state import Game, Piece, initial_game
 from hive.ml.game_to_graph import Graph
 

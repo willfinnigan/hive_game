@@ -1,5 +1,5 @@
 
-from hive.game_engine.game_moves import opposite_colour
+from hive.game_engine.game_functions import opposite_colour
 from hive.game_engine.game_state import Colour, Game
 from hive.game_engine.grid_functions import pieces_around_location
 

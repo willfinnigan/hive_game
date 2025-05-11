@@ -1,13 +1,13 @@
+from hive.game_engine.moves import NoMove, Move
 from hive.ml.game_to_graph import Graph
 from hive.ml.graph_to_pyg import game_to_pytorch
 from hive.play.agents.board_score.ai_generated_board_score import score_board_advanced, score_board_queens_improved
 from hive.play.agents.board_score.simple_board_score import score_board_queens
 from hive.play.agents.minimax_ai import MinimaxAI
 from hive.play.agents.random_ai import RandomAI
-from hive.game_engine.game_moves import current_turn_colour, get_winner
+from hive.game_engine.game_functions import current_turn_colour, get_winner
 from hive.play.agents.scored_board_state_ai import ScoreBoardIn1Move_AI
 from hive.play.agents.scored_moves_based_ai import ScoreMovesAI
-from hive.game_engine.move import NoMove
 from hive.play.player import Player
 from hive.render.to_text import game_to_text
 from hive.game_engine.game_state import WHITE, BLACK, Game, initial_game
@@ -30,7 +30,7 @@ def play(player_1, player_2, game=None, max_turns=None):
         player = _get_next_player(game, player_1, player_2)
         move = player.get_move(game)
         print(f"Turn {game.player_turns[player.colour]}: {player.colour} - {move}")
-        game = move.play()
+        game = move.play(game)
 
         data = game_to_pytorch(game)
         print(data)

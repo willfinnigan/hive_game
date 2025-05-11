@@ -1,13 +1,15 @@
-import pytest
 
+
+import pytest
 from hive.game_engine import pieces
 from hive.game_engine.errors import NoQueenError
-from hive.game_engine.game_moves import Game, place_piece, move_piece
-from hive.game_engine.piece_logic import get_possible_moves
-from hive.game_engine.game_state import Piece, WHITE, BLACK, create_immutable_grid
+from hive.game_engine.game_functions import move_piece, place_piece
+from hive.game_engine.game_state import BLACK, WHITE, Game, Piece, create_immutable_grid, initial_game
+from hive.game_engine.moves import get_possible_moves
+
 
 def initial_3_move_game() -> Game:
-    game = Game()
+    game = initial_game()
 
     # white 1
     piece = Piece(WHITE, pieces.BLANK, 1)
@@ -62,8 +64,11 @@ def test_queen_possible_moves_are_1_away():
     queen = Piece(WHITE, pieces.QUEEN, 3)
     game = place_piece(game, queen, (-6, 0))
 
-    possible_moves = get_possible_moves(game.grid, (-6, 0))
-    assert possible_moves == [(-5, -1), (-5, 1)]
+    possible_moves = get_possible_moves(game.grid, (-6, 0), 0)
+    move_locations = [move.new_location for move in possible_moves]
+    print(possible_moves)
+
+    assert move_locations == [(-5, -1), (-5, 1)]
 
 def test_queen_can_not_jump_a_piece():
     queen = Piece(WHITE, pieces.QUEEN, 3)
@@ -76,7 +81,7 @@ def test_queen_can_not_jump_a_piece():
     
     grid = create_immutable_grid(grid)
 
-    moves = get_possible_moves(grid, (6, 2))
+    moves = get_possible_moves(grid, (6, 2), 0)
 
     assert (5, 3) not in moves   # this shouldn't be possible because it breaks the connection
     assert len(moves) == 2
@@ -88,7 +93,7 @@ def test_ant_can_move_anywhere_on_a_line():
     ant = Piece(WHITE, pieces.ANT, 5)
     game = place_piece(game, ant, (-8, 0))
 
-    possible_moves = get_possible_moves(game.grid, (-8, 0))
+    possible_moves = get_possible_moves(game.grid, (-8, 0), 0)
     assert len(possible_moves) == 19
 
 
@@ -98,8 +103,12 @@ def test_grasshoper_can_jump_over_pieces():
     grass_hopper = Piece(WHITE, pieces.GRASSHOPPER, 5)
     game = place_piece(game, grass_hopper, (-8, 0))
 
-    possible_moves = get_possible_moves(game.grid, (-8, 0))
-    assert possible_moves == [(10, 0)]
+    possible_moves = get_possible_moves(game.grid, (-8, 0), 0)
+
+    move_locations = [move.new_location for move in possible_moves]
+    print(possible_moves)
+
+    assert move_locations == [(10, 0)]
 
 def test_spider_moves_3_moves():
     game = initial_5_move_game()
@@ -107,8 +116,11 @@ def test_spider_moves_3_moves():
     spider = Piece(WHITE, pieces.SPIDER, 5)
     game = place_piece(game, spider, (-8, 0))
 
-    possible_moves = get_possible_moves(game.grid, (-8, 0))
-    assert possible_moves == [(-3, -1), (-3, 1)]   # 3 moves along the straight line on either side
+    possible_moves = get_possible_moves(game.grid, (-8, 0), 0)
+
+    move_locations = [move.new_location for move in possible_moves]
+
+    assert move_locations == [(-3, -1), (-3, 1)]   # 3 moves along the straight line on either side
 
 
 def test_beetle_can_get_possible_moves_move_1_space_and_on_to_another_piece():
@@ -119,8 +131,11 @@ def test_beetle_can_get_possible_moves_move_1_space_and_on_to_another_piece():
     beetle = Piece(WHITE, pieces.BEETLE, 2)
     game = place_piece(game, beetle, (2, 0))
 
-    possible_moves = get_possible_moves(game.grid, (2, 0))
-    assert possible_moves == [(1, -1), (1, 1), (0, 0)]
+    possible_moves = get_possible_moves(game.grid, (2, 0), 0)
+
+    move_locations = [move.new_location for move in possible_moves]
+
+    assert move_locations == [(1, -1), (1, 1), (0, 0)]
 
 def test_beetle_can_move_one_top_of_another_piece():
     game = Game()
@@ -148,6 +163,6 @@ def test_ant_can_move_around_2_piece():
     
     grid = create_immutable_grid(grid)
 
-    possible_moves = get_possible_moves(grid, (0, 0))
+    possible_moves = get_possible_moves(grid, (0, 0), 0)
     assert len(possible_moves) == 7
 

@@ -1,9 +1,9 @@
-from hive.game_engine.game_moves import opposite_colour
+from hive.game_engine.game_functions import opposite_colour
 from hive.game_engine.game_state import Colour, Game
 from hive.game_engine.grid_functions import (
     pieces_around_location, can_remove_piece, get_placeable_locations
 )
-from hive.game_engine.piece_logic import get_possible_moves
+from hive.game_engine.moves import get_possible_moves
 
 
 
