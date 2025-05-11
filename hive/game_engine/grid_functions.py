@@ -20,7 +20,7 @@ def positions_around_location(loc: Location) -> Tuple[Location, Location, Locati
     return ((q - 1, r - 1), (q + 1, r - 1), (q + 2, r), (q + 1, r + 1), (q - 1, r + 1), (q - 2, r))
 
 
-@lru_cache(maxsize=None)  # Increased cache size for better performance
+@lru_cache(maxsize=None)
 def pieces_around_location(grid: Grid, loc: Location) -> Tuple[Location, ...]:
     """Return all positions around a location that contain pieces"""
     # Pre-compute the positions once
@@ -30,7 +30,7 @@ def pieces_around_location(grid: Grid, loc: Location) -> Tuple[Location, ...]:
     # This is faster than a generator expression when we need all results
     return tuple(pos for pos in positions if pos in grid)
 
-@lru_cache(maxsize=None)  # Increased cache size for better performance
+@lru_cache(maxsize=None)
 def is_position_connected(grid: Grid, loc: Location, positions_to_ignore: Tuple[Location] = None) -> bool:
     """Check if a position is connected to at least one piece in the grid"""
     piece_locations = pieces_around_location(grid, loc)

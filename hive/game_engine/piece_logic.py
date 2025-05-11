@@ -1,6 +1,6 @@
 from typing import List
 from hive.game_engine.game_state import Grid, Location
-from hive.game_engine.grid_functions import one_move_away, is_position_connected, beetle_one_move_away, can_remove_piece, pieces_around_location
+from hive.game_engine.grid_functions import one_move_away, is_position_connected, beetle_one_move_away, can_remove_piece, pieces_around_location, positions_around_location
 from hive.game_engine import pieces
 
 
@@ -205,16 +205,59 @@ def get_pillbug_moves(grid: Grid, loc: Location) -> List[Location]:
 def get_ladybug_moves(grid: Grid, loc: Location) -> List[Location]:
     """Get all possible moves for a ladybug piece
     
-    The Ladybug moves exactly three spaces: 
-        two on top of the hive followed by one down to the ground level. 
+    The Ladybug moves exactly three spaces:
+        two on top of the hive followed by one down to the ground level.
         
-    The Ladybug must move all three spaces and cannot remain on top of the hive. 
-    Unlike the Beetle, it cannot stay on top of other pieces. 
+    The Ladybug must move all three spaces and cannot remain on top of the hive.
+    Unlike the Beetle, it cannot stay on top of other pieces.
 
-    The Ladybug's unique movement pattern allows it to jump gaps and potentially 
+    The Ladybug's unique movement pattern allows it to jump gaps and potentially
     reach positions that would be inaccessible to other pieces.
     """
-    pass
+    
+    # Early return if the piece can't be removed
+    if not can_remove_piece(grid, loc):
+        return []
+    
+    # First steps - get all the positions containing a piece around the ladybug
+    first_steps = set()
+    for pos in pieces_around_location(grid, loc):
+        first_steps.add(pos)
+
+    # If no valid first steps, return empty list
+    if len(first_steps) == 0:
+        return []
+    
+    # Second step: Move on top of the hive again (like a beetle)
+    second_steps = set()
+    for first_pos in first_steps:
+        for pos in pieces_around_location(grid, first_pos):
+            second_steps.add(pos)
+
+    # Second step can not be the starting position
+    second_steps.discard(loc)
+
+    # If no valid second steps, return empty list
+    if len(second_steps) == 0:
+        return []
+    
+    # Finially must move to an empty ground space one move away from the second step
+    possible_final_positions = set()
+    for second_pos in second_steps:
+        for pos in positions_around_location(second_pos):
+            possible_final_positions.add(pos)
+    
+    final_positions = set()
+    for pos in possible_final_positions:
+        # if space is not empty, can't move there
+        if len(grid.get(pos, ())) != 0:
+            continue
+
+        # space must be connected to the hive
+        if is_position_connected(grid, pos, positions_to_ignore=(loc,)):
+            final_positions.add(pos)
+
+    return list(final_positions)
 
 move_functions = {pieces.ANT: get_ant_moves,
                   pieces.BEETLE: get_beetle_moves,
