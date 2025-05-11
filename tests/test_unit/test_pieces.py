@@ -150,3 +150,4 @@ def test_ant_can_move_around_2_piece():
 
     possible_moves = get_possible_moves(grid, (0, 0))
     assert len(possible_moves) == 7
+

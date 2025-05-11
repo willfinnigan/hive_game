@@ -1,6 +1,6 @@
 from typing import List
 from hive.game_engine.game_state import Grid, Location
-from hive.game_engine.grid_functions import one_move_away, is_position_connected, beetle_one_move_away, can_remove_piece
+from hive.game_engine.grid_functions import one_move_away, is_position_connected, beetle_one_move_away, can_remove_piece, pieces_around_location
 from hive.game_engine import pieces
 
 
@@ -115,13 +115,115 @@ def get_spider_moves(grid: Grid, loc: Location) -> List[Location]:
     # Extract the final positions from each valid path
     return [path[-1] for path in paths]
 
+def get_mosquito_moves(grid: Grid, loc: Location) -> List[Location]:
+    """Get all possible moves for a mosquito piece
+    
+    The Mosquito mimics the movement ability of any piece it's touching.
+    For example, if touching a Beetle, it can move like a Beetle.
+    If touching a Spider, it can move like a Spider.
+    
+    The Mosquito must be touching the piece at the start of its turn to copy its movement.
+    If the Mosquito is on top of the hive (like a Beetle would be), it can only move like a Beetle,
+    regardless of what other pieces it's touching.
+    """
+    # Early return if the piece can't be removed
+    if not can_remove_piece(grid, loc):
+        return []
+    
+    stack = grid.get(loc)
+    if not stack:
+        return []
+    
+    # If mosquito is on top of another piece, it can only move like a beetle
+    if len(stack) > 1:
+        return get_beetle_moves(grid, loc)
+    
+    # Get all adjacent pieces
+    adjacent_positions = pieces_around_location(grid, loc)
+    
+    # If no adjacent pieces, return empty list
+    if not adjacent_positions:
+        return []
+    
+    # Collect all possible moves from adjacent pieces
+    all_moves = []
+    
+    for adj_pos in adjacent_positions:
+        adj_stack = grid.get(adj_pos)
+        if not adj_stack:
+            continue
+            
+        # Get the top piece at this position
+        adj_piece = adj_stack[-1]
+        
+        # Skip if it's another mosquito to prevent infinite recursion
+        if adj_piece.name == pieces.MOSQUITO:
+            continue
+            
+        # Get moves based on the adjacent piece type
+        if adj_piece.name == pieces.ANT:
+            moves = get_ant_moves(grid, loc)
+            all_moves.extend(moves)
+        elif adj_piece.name == pieces.BEETLE:
+            moves = get_beetle_moves(grid, loc)
+            all_moves.extend(moves)
+        elif adj_piece.name == pieces.GRASSHOPPER:
+            moves = get_grasshopper_moves(grid, loc)
+            all_moves.extend(moves)
+        elif adj_piece.name == pieces.QUEEN:
+            moves = get_queen_moves(grid, loc)
+            all_moves.extend(moves)
+        elif adj_piece.name == pieces.SPIDER:
+            moves = get_spider_moves(grid, loc)
+            all_moves.extend(moves)
+        elif adj_piece.name == pieces.MOSQUITO:
+            # If the adjacent piece is a mosquito, we can ignore it
+            pass
+        elif adj_piece.name == pieces.PILLBUG:
+            moves = get_pillbug_moves(grid, loc)
+            all_moves.extend(moves)
+        elif adj_piece.name == pieces.LADYBUG:
+            moves = get_ladybug_moves(grid, loc)
+            all_moves.extend(moves)
+    
+    # Remove duplicates and return
+    return list(set(all_moves))
 
+def get_pillbug_moves(grid: Grid, loc: Location) -> List[Location]:
+    """Get all possible moves for a pillbug piece
+    
+    The Pillbug has two abilities:
+        - It can move one space around the hive like the Queen Bee.
+        - It has a special ability to move other pieces: 
+            Once per turn, instead of moving, the Pillbug can move an adjacent unstacked piece (friendly or opposing) 
+            to an empty space adjacent to itself, provided the move doesn't break the hive. This special ability cannot 
+            be used on a piece that was moved in the opponent's last turn, and cannot move the Queen if it would 
+            break the hive. (so pillbug can not move beetles on top of other pieces).
+    """
+    pass
+
+def get_ladybug_moves(grid: Grid, loc: Location) -> List[Location]:
+    """Get all possible moves for a ladybug piece
+    
+    The Ladybug moves exactly three spaces: 
+        two on top of the hive followed by one down to the ground level. 
+        
+    The Ladybug must move all three spaces and cannot remain on top of the hive. 
+    Unlike the Beetle, it cannot stay on top of other pieces. 
+
+    The Ladybug's unique movement pattern allows it to jump gaps and potentially 
+    reach positions that would be inaccessible to other pieces.
+    """
+    pass
 
 move_functions = {pieces.ANT: get_ant_moves,
                   pieces.BEETLE: get_beetle_moves,
                   pieces.GRASSHOPPER: get_grasshopper_moves,
                   pieces.QUEEN: get_queen_moves,
-                  pieces.SPIDER: get_spider_moves
+                  pieces.SPIDER: get_spider_moves,
+                  pieces.MOSQUITO: get_mosquito_moves,
+                  pieces.PILLBUG: get_pillbug_moves,
+                  pieces.LADYBUG: get_ladybug_moves,
                   }
 
 def get_possible_moves(grid: Grid, location: Location) -> List[Location]:

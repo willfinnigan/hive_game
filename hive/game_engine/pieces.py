@@ -1,9 +1,16 @@
+# Original game pieces for Hive
 ANT = 'ANT'
 BEETLE = 'BEETLE'
 GRASSHOPPER = 'GRASSHOPPER'
 QUEEN = 'QUEEN'
 SPIDER = 'SPIDER'
-BLANK = 'BLANK' 
 
+# Expansion pieces
+MOSQUITO = 'MOSQUITO'
+PILLBUG = 'PILLBUG'
+LADYBUG = 'LADYBUG'
+
+# Other
+BLANK = 'BLANK' 
 EMPTY = 'EMPTY'
 
