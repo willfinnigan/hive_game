@@ -26,7 +26,7 @@ class Hive_GNN_Model(nn.Module):
     """
     
     def __init__(self, 
-                 node_features=11,        # Number of features per piece/node
+                 node_features=14,        # Number of features per piece/node
                  edge_features=5,         # Number of features per edge (used by GAT layers)
                  hidden_dim=64,           # Hidden dimension size
                  num_gat_layers=3,        # Number of GAT layers
@@ -135,7 +135,7 @@ class Hive_GNN_Model(nn.Module):
 
 if __name__ == '__main__':
     # Example usage
-    node_features = 11
+    node_features = 14
     edge_features = 5
     model = Hive_GNN_Model(node_features=node_features, edge_features=edge_features)
 

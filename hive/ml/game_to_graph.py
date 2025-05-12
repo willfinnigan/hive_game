@@ -205,13 +205,10 @@ class Node():
             # get the moves for this piece
             moves = get_possible_moves(graph.game.grid, self.location, stack_height-1)
 
-            print(moves)
 
             for move in moves:
                 move_loc = move.new_location
                 move_height = move.new_stack_idx
-
-                print(move)
 
                 # get the node for the move
                 node = graph.nodes_by_location.get((move_loc, move_height))

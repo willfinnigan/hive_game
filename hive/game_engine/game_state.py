@@ -32,7 +32,7 @@ class Game(PRecord):
 
 
 
-def create_standard_pieces(colour: str) -> Tuple[Piece]:
+def create_standard_pieces(colour: str) -> Tuple[Piece, ...]:
     return (Piece(colour, pieces.QUEEN, 1),
             Piece(colour, pieces.ANT, 1),
             Piece(colour, pieces.ANT, 2),
@@ -45,8 +45,15 @@ def create_standard_pieces(colour: str) -> Tuple[Piece]:
             Piece(colour, pieces.SPIDER, 1),
             Piece(colour, pieces.SPIDER, 2))
 
+def create_expanded_pieces(colour: str) -> Tuple[Piece, ...]:
+    standard_pieces = create_standard_pieces(colour)
+    expanded_pieces = (Piece(colour, pieces.PILLBUG, 1),
+                       Piece(colour, pieces.MOSQUITO, 1),
+                       Piece(colour, pieces.LADYBUG, 1))
+    return standard_pieces + expanded_pieces
+
 def initial_game(grid: Optional[Grid|dict] = None,
-                 pieces_function = create_standard_pieces) -> Game:
+                 pieces_function = create_expanded_pieces) -> Game:
     white_pieces = pieces_function(WHITE)
     black_pieces = pieces_function(BLACK)
 

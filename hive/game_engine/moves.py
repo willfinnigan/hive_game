@@ -270,7 +270,7 @@ def get_mosquito_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     
     # If mosquito is on top of another piece, it can only move like a beetle
     if len(stack) > 1:
-        return get_beetle_moves(grid, loc)
+        return get_beetle_moves(grid, loc, stack_idx)
     
     # Get all adjacent pieces
     adjacent_positions = pieces_around_location(grid, loc)
@@ -323,7 +323,7 @@ def get_mosquito_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     # Remove duplicates and return
     return list(set(all_moves))
 
-def get_pillbug_moves(grid: Grid, loc: Location) -> List[Move]:
+def get_pillbug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     """Get all possible moves for a pillbug piece
     
     The Pillbug has two abilities:
@@ -334,7 +334,46 @@ def get_pillbug_moves(grid: Grid, loc: Location) -> List[Move]:
             be used on a piece that was moved in the opponent's last turn, and cannot move the Queen if it would 
             break the hive. (so pillbug can not move beetles on top of other pieces).
     """
-    pass
+    moves = []
+
+    stack = grid.get(loc, ())
+    if len(stack) == 0:
+        raise ValueError("No pieces at the given location")
+
+    #if beatle on top of pillbug, no moves
+    if len(stack) > 1:  #
+        return []
+
+    # First lets get all the adjacent pieces which the pillbug could move
+    for pos in pieces_around_location(grid, loc):
+        adj_stack = grid.get(pos, ())
+        if len(adj_stack) == 0:
+            continue
+        if len(adj_stack) > 1:
+            continue
+        adj_piece = adj_stack[0]
+
+        # for each possible position we could move, check if it would be connected
+        for new_pos in positions_around_location(loc):
+            # if the position is empty, we can move there
+            if len(grid.get(new_pos, ())) != 0:
+                continue
+
+            # check if the new position would be connected to the hive - ignore the old position of this piece
+            if is_position_connected(grid, new_pos, positions_to_ignore=(pos,)):
+                if can_remove_piece(grid, pos):
+                    mv = Move(piece=adj_piece,
+                              current_stack_idx=0,
+                              current_location=pos,
+                              new_stack_idx=0,
+                              new_location=new_pos)
+                    moves.append(mv)
+
+    # Second lets get all the possible moves for the pillbug - 1 move away like queen
+    moves += get_queen_moves(grid, loc, stack_idx)
+    return moves
+
+
 
 def get_ladybug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     """Get all possible moves for a ladybug piece
@@ -351,7 +390,6 @@ def get_ladybug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     
     # Early return if the piece can't be removed
     if not can_remove_piece(grid, loc):
-        print("Ladybug can't be removed")
         return []
     
     stack = grid.get(loc, ())
@@ -365,7 +403,6 @@ def get_ladybug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     for pos in pieces_around_location(grid, loc):
         first_steps.add(pos)
 
-    print("First steps:", first_steps)
     # If no valid first steps, return empty list
     if len(first_steps) == 0:
         return []
@@ -378,8 +415,6 @@ def get_ladybug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
 
     # Second step can not be the starting position
     second_steps.discard(loc)
-
-    print("Second steps:", second_steps)
 
     # If no valid second steps, return empty list
     if len(second_steps) == 0:
@@ -400,8 +435,6 @@ def get_ladybug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
         # space must be connected to the hive
         if is_position_connected(grid, pos, positions_to_ignore=(loc,)):
             final_positions.add(pos)
-
-
 
     moves = []
     for new_loc in final_positions:

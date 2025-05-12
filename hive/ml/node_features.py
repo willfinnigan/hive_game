@@ -15,7 +15,10 @@ PIECE_TYPES = {pieces.QUEEN: 0,
                pieces.ANT: 1, 
                pieces.SPIDER: 2, 
                pieces.BEETLE: 3, 
-               pieces.GRASSHOPPER: 4}
+               pieces.GRASSHOPPER: 4,
+               pieces.PILLBUG: 5,
+               pieces.MOSQUITO: 6,
+               pieces.LADYBUG: 7}
 
 # One hot encoding for piece colours
 AFFILIATION = {"CURRENT_PLAYER": 0, "OPPONENT_PLAYER": 1}
