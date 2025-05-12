@@ -30,7 +30,7 @@ def get_queen_location(grid: Grid, colour: Colour) -> Optional[Location]:
     return queen_location
 
 
-def place_piece(game: Game, piece: Piece, location: Location) -> Game:
+def place_piece(game: Game, piece: Piece, location: Location, move=None) -> Game:
     check_is_valid_location(location)
     check_is_valid_placement(game.grid, location, piece.colour)
 
@@ -54,13 +54,17 @@ def place_piece(game: Game, piece: Piece, location: Location) -> Game:
     current_turn = game.player_turns.get(piece.colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(piece.colour, current_turn + 1))
 
-    check_queen_timely_placement(game_mutable.persistent(), piece.colour)
+    if move is not None:
+        game_mutable = game_mutable.set('move', move)
 
     new_game = game_mutable.persistent()
     new_game = new_game.set('parent', game)  # Store reference to previous game state
+
+    check_queen_timely_placement(new_game, piece.colour)
+
     return new_game
 
-def move_piece(game: Game, current_location: Location, location: Location) -> Game:
+def move_piece(game: Game, current_location: Location, location: Location, move=None) -> Game:
     check_is_valid_location(location)
     check_is_valid_move(game.grid, current_location, location)
 
@@ -85,7 +89,6 @@ def move_piece(game: Game, current_location: Location, location: Location) -> Ga
     destination_stack = game.grid.get(location, ())
     updated_destination_stack = destination_stack + (piece,)
     updated_grid = updated_grid.set(location, updated_destination_stack)
-    
 
     # Update queen position if needed
     if piece.name == pieces.QUEEN:  # Fixed: QUEEN -> pieces.QUEEN
@@ -95,20 +98,28 @@ def move_piece(game: Game, current_location: Location, location: Location) -> Ga
     current_turn = game.player_turns.get(piece.colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(piece.colour, current_turn + 1))
 
-    check_queen_timely_placement(game_mutable.persistent(), piece.colour)
-
     game_mutable = game_mutable.set('grid', updated_grid)
 
+    game_mutable = game_mutable.set('parent', game)  # Store reference to previous game state
+
+    if move is not None:
+        game_mutable = game_mutable.set('move', move)
+
     new_game = game_mutable.persistent()
-    new_game = new_game.set('parent', game)  # Store reference to previous game state
+
+    check_queen_timely_placement(new_game, piece.colour)
+
     return new_game
 
-def pass_move(game: Game, colour: str) -> Game:
+def pass_move(game: Game, colour: str, move=None) -> Game:
     game_mutable = game.evolver()
 
     # Increment player's turn count
     current_turn = game.player_turns.get(colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(colour, current_turn + 1))
+
+    if move is not None:
+        game_mutable = game_mutable.set('move', move)
 
     new_game = game_mutable.persistent()
     new_game = new_game.set('parent', game)  # Store reference to previous game state

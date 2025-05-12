@@ -15,9 +15,9 @@ class Move:
 
     def play(self, game) -> Game:
         if self.current_location is None:
-            new_game = place_piece(game, self.piece, self.new_location)
+            new_game = place_piece(game, self.piece, self.new_location, move=self)
         else:
-            new_game = move_piece(game, self.current_location, self.new_location)
+            new_game = move_piece(game, self.current_location, self.new_location, move=self)
 
         return new_game
 
@@ -36,7 +36,7 @@ class NoMove:
     colour: Colour
 
     def play(self, game) -> Game:
-        new_game = pass_move(game, self.colour)
+        new_game = pass_move(game, self.colour, move=self)
         return new_game
     
     def __repr__(self):

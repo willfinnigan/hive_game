@@ -51,7 +51,10 @@ PIECE_TYPE_TO_LETTER = {
     pieces.ANT: 'A',
     pieces.BEETLE: 'B',
     pieces.GRASSHOPPER: 'G',
-    pieces.SPIDER: 'S'
+    pieces.SPIDER: 'S',
+    pieces.LADYBUG: 'L',
+    pieces.PILLBUG: 'P',
+    pieces.MOSQUITO: 'M'
 }
 
 LETTER_TO_PIECE_TYPE = {
@@ -59,7 +62,10 @@ LETTER_TO_PIECE_TYPE = {
     'A': pieces.ANT,
     'B': pieces.BEETLE,
     'G': pieces.GRASSHOPPER,
-    'S': pieces.SPIDER
+    'S': pieces.SPIDER,
+    'L': pieces.LADYBUG,
+    'P': pieces.PILLBUG,
+    'M': pieces.MOSQUITO
 }
 
 # Direction mapping for relative positioning based on doubled coordinates (double width)
@@ -108,7 +114,7 @@ class MoveString:
     
     def __post_init__(self):
         """Parse the raw string into components if not already set."""
-        if self.raw_string.lower() == 'pass':
+        if self.raw_string.lower() == 'pass' or self.raw_string.lower() == 'pass\n':
             self.is_pass = True
             return
             
@@ -118,6 +124,7 @@ class MoveString:
     def _parse_raw_string(self):
         """Parse the raw BoardSpace notation string into components."""
         parts = self.raw_string.strip().split()
+
         
         # First part is always the piece ID
         self.piece_id = parts[0]
@@ -216,7 +223,11 @@ def find_piece_by_id(game: Game, piece_id: str) -> Optional[Tuple[Piece, Locatio
     """
     color = BOARDSPACE_TO_COLOR[piece_id[0]]
     piece_type = LETTER_TO_PIECE_TYPE.get(piece_id[1])
-    piece_num = int(piece_id[2:])
+
+    if len(piece_id) < 3:
+        piece_num = 1
+    else:
+        piece_num = int(piece_id[2:])
     
     for loc, stack in game.grid.items():
         for piece in stack:
@@ -384,7 +395,11 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
     piece_id = move_str.piece_id
     color = BOARDSPACE_TO_COLOR[piece_id[0]]
     piece_type = LETTER_TO_PIECE_TYPE.get(piece_id[1])
-    piece_num = int(piece_id[2:])
+
+    if len(piece_id) < 3:
+        piece_num = 1
+    else:
+        piece_num = int(piece_id[2:])
     
     # Create the piece
     piece = Piece(colour=color, name=piece_type, number=piece_num)
@@ -410,7 +425,9 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         if ref_piece_info is None:
             raise ValueError(f"Reference piece not found: {move_str.reference_piece_id}")
         _, ref_loc = ref_piece_info
-        return Move(piece=piece, current_location=current_location, current_stack_idx=current_stack_idx, new_location=ref_loc)
+        return Move(piece=piece,
+                    current_location=current_location, current_stack_idx=current_stack_idx,
+                    new_location=ref_loc, new_stack_idx=len(game.grid[ref_loc]))
     
     # Find the reference piece
     ref_piece_info = find_piece_by_id(game, move_str.reference_piece_id)
@@ -506,42 +523,3 @@ def replay_trajectory(moves: List[MoveString]) -> Game:
     return game
 
 
-def record_game(game_controller, filename: str):
-    """
-    Record a game as it's being played and save the trajectory.
-    
-    Args:
-        game_controller: The game controller
-        filename: The filename to save to
-    """
-    from hive.game_engine.game_functions import get_winner
-    
-    original_play = game_controller.play
-    moves = []
-    
-    def record_play():
-        while get_winner(game_controller.game) is None:
-            player = game_controller.get_next_player()
-            move = player.get_move(game_controller.game)
-            print(f"Turn {game_controller.game.player_turns[player.colour]}: {player.colour} - {move}")
-            
-            # Convert the move to BoardSpace notation and record it
-            move_str = move_to_boardspace(game_controller.game, move)
-            moves.append(move_str)
-            print(f"BoardSpace notation: {move_str.raw_string}")
-            
-            game_controller.game = move.play(game_controller.game)
-            from hive.render.to_text import game_to_text
-            print(game_to_text(game_controller.game))
-        
-        winner = get_winner(game_controller.game)
-        print(f"{winner} wins!")
-        
-        # Save the trajectory
-        save_trajectory(moves, filename)
-        print(f"Game trajectory saved to {filename}")
-        
-        return winner
-    
-    game_controller.play = record_play
-    return game_controller

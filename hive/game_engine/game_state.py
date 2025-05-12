@@ -28,6 +28,7 @@ class Game(PRecord):
     player_turns = pmap_field(str, int)  # Colour to turn count
     queens = pmap_field(str, tuple)  # Colour to Location (tuple of ints)
     parent = field(initial=None)  # Self-reference to Game, can't use type='Game' directly
+    move = field(initial=None)  # Move that led to this game state
     unplayed_pieces = pmap_field(str, tuple)  # Colour to unplayed pieces (tuple of Pieces
 
 
