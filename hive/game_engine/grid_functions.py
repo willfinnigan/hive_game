@@ -102,14 +102,18 @@ def beetle_one_move_away(grid: Grid, loc: Location, positions_to_ignore: Tuple[L
     """
     # Pre-compute positions around location once
     positions = positions_around_location(loc)
+
     connected_spaces = []
-    
     for space in positions:
-        # Simplified condition with direct boolean check
-        if grid.get(space) is None and not is_position_connected(grid, space, positions_to_ignore=positions_to_ignore):
-            continue
+        stack = grid.get(space, ())
+        if stack == ():
+            connected = is_position_connected(grid, space, positions_to_ignore=positions_to_ignore)
+            if connected == False:
+                continue
+
+        # otherwise add to connected
         connected_spaces.append(space)
-        
+
     return connected_spaces
 
 
@@ -144,13 +148,19 @@ def check_can_slide_to(grid: Grid, loc: Location, to_loc: Location):
 
 
 def is_placeable_location(grid: Grid, loc: Location, colour: Colour) -> bool:
+    """Check if a piece can be placed at a location"""
+
     piece_locations = pieces_around_location(grid, loc)
     stacks = [grid[loc] for loc in piece_locations]
 
     colours_surrounding = set()
+
+    # we only look at the top of the stack - if there are pieces below, they are not relevant
     for stack in stacks:
-        for piece in stack:
-            colours_surrounding.add(piece.colour)
+        if stack is None or len(stack) == 0:
+            continue
+        piece = stack[-1]
+        colours_surrounding.add(piece.colour)
 
     if len(colours_surrounding) > 1 or colour not in colours_surrounding:
         return False  # colour would be next to another colour
@@ -253,6 +263,10 @@ def check_is_valid_move(grid, current_loc, loc: Location):
         pass
     elif can_remove_piece(grid, current_loc) == False:
         raise BreaksConnectionError
+
+    # if the piece is on top of another piece, it is connected - if loc is already occupied
+    if len(grid.get(loc, ())) > 0:
+        return
 
     # check piece will be connected to the hive once moved
     piece_locations_new = pieces_around_location(grid, loc)

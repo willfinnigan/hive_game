@@ -12,14 +12,23 @@ class Move:
     current_stack_idx: Optional[int]
     new_location: Location
     new_stack_idx: int
+    colour: Colour = None
+
+    def __post_init__(self):
+        # For pillbugs, we pass in the colour
+        if self.colour is None:
+            self.colour = self.piece.colour
 
     def play(self, game) -> Game:
         if self.current_location is None:
             new_game = place_piece(game, self.piece, self.new_location, move=self)
         else:
-            new_game = move_piece(game, self.current_location, self.new_location, move=self)
+            new_game = move_piece(game, self.current_location, self.new_location, self.colour, move=self)
 
         return new_game
+    
+    def get_colour(self):
+        return self.piece.colour
 
     def __repr__(self):
         piece_name = f"{self.piece.colour}_{self.piece.name}_{self.piece.number}"
@@ -28,7 +37,7 @@ class Move:
         return f"Move ({piece_name} from {self.current_location}_{self.current_stack_idx} to {self.new_location}_{self.new_stack_idx})"
     
     def __hash__(self):
-        return hash((self.piece, self.current_location, self.new_location, self.current_stack_idx, self.new_stack_idx))
+        return hash(str(self))
 
 
 @dataclass
@@ -39,8 +48,14 @@ class NoMove:
         new_game = pass_move(game, self.colour, move=self)
         return new_game
     
+    def get_colour(self):
+        return self.colour
+    
     def __repr__(self):
         return f"Pass ({self.colour})"
+    
+    def __hash__(self):
+        return hash(str(self))
 
 def get_ant_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     """Get all possible moves for an ant piece
@@ -114,14 +129,21 @@ def get_beetle_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     # if theres a piece on top, cant move
     # if stack of 3, and beetle is idx 1, then beetle is in the middle, but cant move
     # if stack of 3, and beetle is idx 2, then beetle is on top, and can move
-    if stack_idx < len(stack) - 1:  
+    if stack_idx < len(stack) - 1:
         return []
 
     # Early return if the piece can't be removed
-    if not can_remove_piece(grid, loc):
-        return []
+    if stack_idx == 0:
+        if not can_remove_piece(grid, loc):
+            return []
+
+    # we're currently on top of another piece, so ignore the current location
+    if len(stack) > 1:
+        positions_to_ignore = ()
+    else:
+        positions_to_ignore = (loc,)
     
-    locations = beetle_one_move_away(grid, loc, positions_to_ignore=(loc,))
+    locations = beetle_one_move_away(grid, loc, positions_to_ignore=positions_to_ignore)
 
     moves = []
     for new_loc in locations:
@@ -257,71 +279,69 @@ def get_mosquito_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     The Mosquito must be touching the piece at the start of its turn to copy its movement.
     If the Mosquito is on top of the hive (like a Beetle would be), it can only move like a Beetle,
     regardless of what other pieces it's touching.
+
+    If a mosquito is touching another mosquito at the start of its turn, it can not move at all
+
+    For stacks use the top piece
     """
     # Early return if the piece can't be removed
-    if not can_remove_piece(grid, loc):
-        return []
-    
+
+
     stack = grid.get(loc, ())
     if len(stack) == 0:
         raise ValueError("No pieces at the given location")
     
     piece = stack[stack_idx]
-    
+
+    # Get all adjacent pieces
+    adjacent_positions = pieces_around_location(grid, loc)
+
+    # are any of the surrounding pieces mosquitoes?
+    for adj_pos in adjacent_positions:
+        adj_stack = grid.get(adj_pos, ())
+        if len(adj_stack) == 0:
+            continue
+        adj_piece = adj_stack[-1]
+        if adj_piece.name == pieces.MOSQUITO:
+            # If the adjacent piece is a mosquito, we can not move
+            return []
+
     # If mosquito is on top of another piece, it can only move like a beetle
     if len(stack) > 1:
         return get_beetle_moves(grid, loc, stack_idx)
-    
-    # Get all adjacent pieces
-    adjacent_positions = pieces_around_location(grid, loc)
-    
-    # If no adjacent pieces, return empty list
-    if not adjacent_positions:
-        return []
-    
+
     # Collect all possible moves from adjacent pieces
-    all_moves = []
-    
+
+    adjacent_piece_types = set()
     for adj_pos in adjacent_positions:
         adj_stack = grid.get(adj_pos)
         if not adj_stack:
             continue
-            
+
         # Get the top piece at this position
         adj_piece = adj_stack[-1]
-        
-        # Skip if it's another mosquito to prevent infinite recursion
-        if adj_piece.name == pieces.MOSQUITO:
-            continue
-            
-        # Get moves based on the adjacent piece type
+
         if adj_piece.name == pieces.ANT:
-            moves = get_ant_moves(grid, loc, stack_idx)
-            all_moves.extend(moves)
+            adjacent_piece_types.add(pieces.ANT)
         elif adj_piece.name == pieces.BEETLE:
-            moves = get_beetle_moves(grid, loc, stack_idx)
-            all_moves.extend(moves)
+            adjacent_piece_types.add(pieces.BEETLE)
         elif adj_piece.name == pieces.GRASSHOPPER:
-            moves = get_grasshopper_moves(grid, loc, stack_idx)
-            all_moves.extend(moves)
+            adjacent_piece_types.add(pieces.GRASSHOPPER)
         elif adj_piece.name == pieces.QUEEN:
-            moves = get_queen_moves(grid, loc, stack_idx)
-            all_moves.extend(moves)
+            adjacent_piece_types.add(pieces.QUEEN)
         elif adj_piece.name == pieces.SPIDER:
-            moves = get_spider_moves(grid, loc, stack_idx)
-            all_moves.extend(moves)
-        elif adj_piece.name == pieces.MOSQUITO:
-            # If the adjacent piece is a mosquito, we can ignore it
-            pass
+            adjacent_piece_types.add(pieces.SPIDER)
         elif adj_piece.name == pieces.PILLBUG:
-            moves = get_pillbug_moves(grid, loc, stack_idx)
-            all_moves.extend(moves)
+            adjacent_piece_types.add(pieces.PILLBUG)
         elif adj_piece.name == pieces.LADYBUG:
-            moves = get_ladybug_moves(grid, loc, stack_idx)
-            all_moves.extend(moves)
-    
-    # Remove duplicates and return
-    return list(set(all_moves))
+            adjacent_piece_types.add(pieces.LADYBUG)
+
+
+    all_moves = []
+    for piece_type in adjacent_piece_types:
+        all_moves += move_functions[piece_type](grid, loc, stack_idx)
+
+    return all_moves
 
 def get_pillbug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     """Get all possible moves for a pillbug piece
@@ -330,9 +350,11 @@ def get_pillbug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
         - It can move one space around the hive like the Queen Bee.
         - It has a special ability to move other pieces: 
             Once per turn, instead of moving, the Pillbug can move an adjacent unstacked piece (friendly or opposing) 
-            to an empty space adjacent to itself, provided the move doesn't break the hive. This special ability cannot 
-            be used on a piece that was moved in the opponent's last turn, and cannot move the Queen if it would 
-            break the hive. (so pillbug can not move beetles on top of other pieces).
+            up onto itself, and then down onto  an empty space adjacent to itself,
+            provided the move doesn't break the hive.
+
+          This special ability cannot be used on a piece that was moved in the opponent's last turn.
+          The pillbug can not move pieces through narrow gaps.
     """
     moves = []
 
@@ -344,8 +366,23 @@ def get_pillbug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     if len(stack) > 1:  #
         return []
 
-    # First lets get all the adjacent pieces which the pillbug could move
-    for pos in pieces_around_location(grid, loc):
+    pillbug_piece = stack[stack_idx]
+
+    # Moves the pillbug can make - 1 move away like queen
+    pillbug_moves = get_queen_moves(grid, loc, stack_idx)
+
+    # Now moving adjacent pieces.
+    # First lets get all the positions a piece on top of the pillbug, could move to
+    # ..we can do this by pretending to be a beetle on top of the pillbug
+    locations = beetle_one_move_away(grid, loc, positions_to_ignore=None)
+
+    # But we can only move to empty spaces
+    locations = [loc for loc in locations if len(grid.get(loc, ())) == 0]
+
+    # Now lets get the adjacent pieces we could move
+    adjacent_piece_locations = pieces_around_location(grid, loc)
+    adjacent_pieces = []
+    for pos in adjacent_piece_locations:
         adj_stack = grid.get(pos, ())
         if len(adj_stack) == 0:
             continue
@@ -353,26 +390,25 @@ def get_pillbug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
             continue
         adj_piece = adj_stack[0]
 
-        # for each possible position we could move, check if it would be connected
-        for new_pos in positions_around_location(loc):
-            # if the position is empty, we can move there
-            if len(grid.get(new_pos, ())) != 0:
-                continue
+        # check we can remove this piece
+        if can_remove_piece(grid, pos) == True:
+            adjacent_pieces.append((adj_piece, pos))
 
-            # check if the new position would be connected to the hive - ignore the old position of this piece
-            if is_position_connected(grid, new_pos, positions_to_ignore=(pos,)):
-                if can_remove_piece(grid, pos):
-                    mv = Move(piece=adj_piece,
-                              current_stack_idx=0,
-                              current_location=pos,
-                              new_stack_idx=0,
-                              new_location=new_pos)
-                    moves.append(mv)
+    # Ok so now we have pieces we could move, and possible locations
+    # (we know these are connected because only 1 move away)
 
-    # Second lets get all the possible moves for the pillbug - 1 move away like queen
-    moves += get_queen_moves(grid, loc, stack_idx)
-    return moves
+    moves = []
+    for adj_piece, pos in adjacent_pieces:
+        for move_loc in locations:
+            move = Move(piece=adj_piece,
+                        current_stack_idx=0,
+                        current_location=pos,
+                        new_stack_idx=0,
+                        new_location=move_loc,
+                        colour=pillbug_piece.colour)
+            moves.append(move)
 
+    return pillbug_moves + moves
 
 
 def get_ladybug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:

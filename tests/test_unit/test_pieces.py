@@ -148,10 +148,10 @@ def test_beetle_can_move_one_top_of_another_piece():
     beetle = Piece(WHITE, pieces.BEETLE, 2)
     game = place_piece(game, beetle, (2, 0))
 
-    new_game = move_piece(game, (2, 0), (0, 0))
+    new_game = move_piece(game, (2, 0), (0, 0), colour=WHITE)
     assert new_game.grid.get((0,0)) == (queen, beetle)
 
-    new_game2 = move_piece(new_game, (0, 0), (2, 0))
+    new_game2 = move_piece(new_game, (0, 0), (2, 0), colour=WHITE)
     assert new_game2.grid.get((0, 0)) == (queen,)
     assert new_game2.grid.get((2, 0)) == (beetle,)
 

@@ -22,7 +22,7 @@ def test_can_move_a_piece():
     print()
     print(game_to_text(game, highlight_piece_at=(-2, 0)))
 
-    new_game = move_piece(game, (-2, 0), (1, 1))
+    new_game = move_piece(game, (-2, 0), (1, 1), colour=WHITE)
 
     assert new_game.grid.get((-2, 0), ()) == ()
     assert new_game.grid.get((1, 1)) == (piece_to_move,)
@@ -40,4 +40,4 @@ def test_can_not_move_a_piece_which_breaks_connection():
     game = place_piece(game, piece, (4, 0))
 
     with pytest.raises(BreaksConnectionError):
-        move_piece(game, (0, 0), (6, 0))
+        move_piece(game, (0, 0), (6, 0), colour=WHITE)

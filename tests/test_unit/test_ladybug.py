@@ -19,12 +19,12 @@ def test_ladybug_basic_movement():
         (2, 0): (Piece(WHITE, pieces.ANT, 2),),
         (4, 0): (Piece(WHITE, pieces.QUEEN, 3),),
     }
-    
+
     game = initial_game(grid=grid)
 
     # display the grid for debugging
     print(game_to_text(game))
-    
+
     # Get possible moves for the ladybug
     possible_moves = get_possible_moves(game.grid, (0, 0), 0)
 
@@ -36,7 +36,8 @@ def test_ladybug_basic_movement():
         print(game_to_text(new_game))
 
     move_locations = [mv.new_location for mv in possible_moves]
-    assert sorted(move_locations) == sorted([(3, -1), (3, 1), (5, -1), (5, 1), (6, 0)]), f"Possible moves dont match: {sorted(possible_moves)}"
+    assert sorted(move_locations) == sorted(
+        [(3, -1), (3, 1), (5, -1), (5, 1), (6, 0)]), f"Possible moves dont match: {sorted(possible_moves)}"
 
 
 def test_ladybug_cant_move_when_pinned():
@@ -49,7 +50,7 @@ def test_ladybug_cant_move_when_pinned():
         (4, 0): (Piece(WHITE, pieces.QUEEN, 4),),
         (-4, 0): (Piece(WHITE, pieces.SPIDER, 5),)
     }
-    
+
     game = initial_game(grid=grid)
 
     # Get possible moves for the ladybug - should be empty because it's pinned
@@ -59,6 +60,36 @@ def test_ladybug_cant_move_when_pinned():
 
     assert possible_moves == []
 
-if __name__ == "__main__":
-    # Run the tests
-    test_ladybug_basic_movement()
+
+def test_ladybug_advanced():
+    grid = {(3, -5): (Piece(colour='BLACK', name='ANT', number=1),),
+            (6, 2): (Piece(colour='BLACK', name='LADYBUG', number=1),),
+            (2, 4): (Piece(colour='BLACK', name='GRASSHOPPER', number=2),),
+            (-3, -1): (Piece(colour='BLACK', name='ANT', number=2),),
+            (4, 0): (Piece(colour='BLACK', name='ANT', number=3),),
+            (0, 4): (Piece(colour='BLACK', name='SPIDER', number=2),),
+            (1, -3): (Piece(colour='WHITE', name='SPIDER', number=2),),
+            (-5, -3): (Piece(colour='BLACK', name='SPIDER', number=1),),
+            (-2, -2): (Piece(colour='WHITE', name='BEETLE', number=2), Piece(colour='WHITE', name='BEETLE', number=1), Piece(colour='BLACK', name='MOSQUITO', number=1)),
+            (2, -4): (Piece(colour='WHITE', name='ANT', number=1),),
+            (2, 2): (Piece(colour='WHITE', name='PILLBUG', number=1),),
+            (0, 0): (Piece(colour='WHITE', name='LADYBUG', number=1),),
+            (3, 1): (Piece(colour='WHITE', name='GRASSHOPPER', number=3),),
+            (-3, -3): (Piece(colour='WHITE', name='GRASSHOPPER', number=2),),
+            (-2, -4): (Piece(colour='WHITE', name='GRASSHOPPER', number=1),),
+            (1, 1): (Piece(colour='WHITE', name='QUEEN', number=1),),
+            (1, 3): (Piece(colour='WHITE', name='ANT', number=3),),
+            (-1, -3): (Piece(colour='WHITE', name='ANT', number=2),), (0, -2): (
+        Piece(colour='BLACK', name='QUEEN', number=1), Piece(colour='WHITE', name='MOSQUITO', number=1),
+        Piece(colour='BLACK', name='BEETLE', number=1)), (1, -1): (Piece(colour='BLACK', name='PILLBUG', number=1),),
+            (-3, -5): (Piece(colour='BLACK', name='GRASSHOPPER', number=1),),
+            (4, 2): (Piece(colour='WHITE', name='SPIDER', number=1), Piece(colour='BLACK', name='BEETLE', number=2))}
+
+    game = initial_game(grid=grid)
+
+    print()
+    for colour, pieces in game.unplayed_pieces.items():
+        for piece in pieces:
+            print(piece)
+
+    print(game_to_text(game))

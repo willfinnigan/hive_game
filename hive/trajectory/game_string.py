@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional, Tuple
 
 from hive.trajectory.boardspace import MoveString
 
@@ -11,12 +11,18 @@ class GameString:
     turn: str
     moves: List[MoveString]
 
-def load_replay_game_strings(filepath) -> List[GameString]:
-
+def load_replay_game_strings(filepath, start_end_idx: Optional[Tuple[int, int]]=None) -> List[GameString]:
     # each line is a game
     game_strings = []
     with open(filepath, "r") as f:
-        for line in f:
+
+        # only read the lines between start_idx and end_idx
+        if start_end_idx is not None:
+            lines = f.readlines()[start_end_idx[0]:start_end_idx[1]]
+        else:
+            lines = f.readlines()
+
+        for line in lines:
             try:
                 parts = line.split(";")
                 game_strings.append(GameString(units=parts[0],

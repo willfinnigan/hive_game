@@ -64,7 +64,7 @@ def place_piece(game: Game, piece: Piece, location: Location, move=None) -> Game
 
     return new_game
 
-def move_piece(game: Game, current_location: Location, location: Location, move=None) -> Game:
+def move_piece(game: Game, current_location: Location, location: Location, colour: Colour, move=None) -> Game:
     check_is_valid_location(location)
     check_is_valid_move(game.grid, current_location, location)
 
@@ -95,8 +95,8 @@ def move_piece(game: Game, current_location: Location, location: Location, move=
         game_mutable = game_mutable.set('queens', game.queens.set(piece.colour, location))
 
     # Increment player's turn count
-    current_turn = game.player_turns.get(piece.colour, 0)
-    game_mutable = game_mutable.set('player_turns', game.player_turns.set(piece.colour, current_turn + 1))
+    current_turn = game.player_turns.get(colour, 0)
+    game_mutable = game_mutable.set('player_turns', game.player_turns.set(colour, current_turn + 1))
 
     game_mutable = game_mutable.set('grid', updated_grid)
 

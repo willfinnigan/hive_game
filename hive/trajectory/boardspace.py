@@ -380,6 +380,10 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         
     Returns:
         Union[Move, NoMove]: The internal move representation
+        
+    Note:
+        The color of the move is determined by the current player's turn in replay_trajectory,
+        not by the piece color. This is especially important for pillbug moves.
     """
     if move_str.is_pass:
         # For pass moves, we need to extract the color from the piece_id if available
@@ -406,6 +410,7 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
     
     # First move of the game
     if move_str.reference_piece_id is None:
+        # Note: The actual color will be set in replay_trajectory based on player turn
         return Move(piece=piece, current_location=None, current_stack_idx=None, new_location=(0, 0), new_stack_idx=0)
     
     # Find the moving piece in the game
@@ -425,6 +430,7 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         if ref_piece_info is None:
             raise ValueError(f"Reference piece not found: {move_str.reference_piece_id}")
         _, ref_loc = ref_piece_info
+        # Note: The actual color will be set in replay_trajectory based on player turn
         return Move(piece=piece,
                     current_location=current_location, current_stack_idx=current_stack_idx,
                     new_location=ref_loc, new_stack_idx=len(game.grid[ref_loc]))
@@ -466,6 +472,7 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
 
     new_stack_height = len(game.grid.get(target_loc, []))
 
+    # Note: The actual color will be set in replay_trajectory based on player turn
     return Move(piece=piece,
                 current_location=current_location, current_stack_idx=current_stack_idx,
                 new_location=target_loc, new_stack_idx=new_stack_height)
@@ -516,9 +523,24 @@ def replay_trajectory(moves: List[MoveString]) -> Game:
     from hive.game_engine.game_state import initial_game
     game = initial_game()
     
+    # Track the current player's turn (WHITE starts in Hive)
+    current_player = WHITE
+    
     for move_str in moves:
         move = boardspace_to_move(game, move_str)
+        
+        # Set the move color based on the current player's turn, not the piece color
+        # This is especially important for pillbug moves that can move opponent pieces
+        if isinstance(move, Move):
+            move.colour = current_player
+        elif isinstance(move, NoMove):
+            move.colour = current_player
+            
+        # Play the move
         game = move.play(game)
+        
+        # Switch to the other player's turn
+        current_player = BLACK if current_player == WHITE else WHITE
     
     return game
 
