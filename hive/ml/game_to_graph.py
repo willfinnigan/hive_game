@@ -1,9 +1,9 @@
-from platform import node
 from typing import List, Optional
 
 from hive.game_engine.game_state import WHITE, Colour, Game, Grid, Piece, initial_game
 from hive.game_engine.grid_functions import get_placeable_locations, positions_around_location
 from hive.game_engine.moves import get_possible_moves
+from hive.game_engine.player_functions import get_players_possible_moves_or_placements
 from hive.ml.node_features import NodeFeatureMethod
 from hive.ml.node_features import all_node_feature_methods
 
@@ -62,14 +62,30 @@ class Graph():
                     self.nodes_by_location[node.loc_id] = node
 
         # add an empty node above every stack
-        for loc in locations:
-            stack = self.game.grid.get(loc, ())
-            if len(stack) > 0:
-                # add an empty node above the stack
-                node = Node(loc, len(stack)+1, None)
-                self.nodes.append(node)
-                self.node_dict[node.node_id] = node
-                self.nodes_by_location[node.loc_id] = node
+        # for loc in locations:
+        #     stack = self.game.grid.get(loc, ())
+        #     if len(stack) > 0:
+        #         # add an empty node above the stack
+        #         node = Node(loc, len(stack)+1, None)
+        #         self.nodes.append(node)
+        #         self.node_dict[node.node_id] = node
+        #         self.nodes_by_location[node.loc_id] = node
+
+        # add an empty node above every stack where there is a piece that can move there
+        possible_moves = get_players_possible_moves_or_placements(self.game.current_turn, self.game)
+        move_locations_w_stack_idx = set()
+        for move in possible_moves:
+            if move.new_stack_idx <= 0:
+                continue  # not interested in moves to ground level - already covered
+
+            # add the location and stack index to the set
+            move_locations_w_stack_idx.add((move.new_location, move.new_stack_idx))
+
+        for loc, stack_idx in move_locations_w_stack_idx:
+            node = Node(loc, stack_idx+1, None)
+            self.nodes.append(node)
+            self.node_dict[node.node_id] = node
+            self.nodes_by_location[node.loc_id] = node
 
 
     def _create_nodes_unplaced(self):

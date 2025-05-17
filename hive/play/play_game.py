@@ -31,8 +31,8 @@ def play(player_1, player_2, game=None, max_turns=None):
         print(f"Turn {game.player_turns[player.colour]}: {player.colour} - {move}")
         game = move.play(game)
 
-        #data = game_to_pytorch(game)
-        #print(data)
+        data = game_to_pytorch(game)
+        print(data)
 
         if not isinstance(move, NoMove):
             print(game_to_text(game, highlight_piece_at=move.new_location))
