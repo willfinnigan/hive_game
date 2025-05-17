@@ -96,7 +96,7 @@ class GameDataLoader:
                     
                     try:
                         # Convert GameString to Game object
-                        game = replay_trajectory(game_string.moves)
+                        game = replay_trajectory(game_string.moves, game_string.turn)
                         if game is not None:
                             games.append(game)
                     except Exception as e:
@@ -139,7 +139,7 @@ class GameDataLoader:
                 
                 try:
                     # Convert GameString to Game object
-                    return replay_trajectory(game_string.moves)
+                    return replay_trajectory(game_string.moves, game_string.turn)
                 except Exception as e:
                     print(f"Error replaying game at position {idx}")
                     print(e)

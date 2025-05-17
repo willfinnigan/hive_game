@@ -105,12 +105,14 @@ class MoveString:
         reference_piece_id: The reference piece identifier (e.g., 'bA1')
         direction_indicator: The direction indicator (-, /, or \)
         is_pass: Whether this move is a pass
+        colour: The colour of the player whose turn it is (not necessarily the piece colour)
     """
     raw_string: str
     piece_id: Optional[str] = None
     reference_piece_id: Optional[str] = None
     direction_indicator: Optional[str] = None
     is_pass: bool = False
+    colour: Optional[str] = None
     
     def __post_init__(self):
         """Parse the raw string into components if not already set."""
@@ -164,31 +166,31 @@ class MoveString:
             raise ValueError(f"Invalid BoardSpace notation: {self.raw_string}")
     
     @classmethod
-    def from_components(cls, piece_id: str, reference_piece_id: Optional[str] = None, 
-                       direction_indicator: Optional[str] = None):
+    def from_components(cls, piece_id: str, reference_piece_id: Optional[str] = None,
+                       direction_indicator: Optional[str] = None, colour: Optional[str] = None):
         """Create a MoveString from components."""
         if reference_piece_id is None:
             # First move
-            return cls(piece_id)
+            return cls(piece_id, colour=colour)
         
         if direction_indicator is None:
             # Beetle moving onto another piece
-            return cls(f"{piece_id} {reference_piece_id}")
+            return cls(f"{piece_id} {reference_piece_id}", colour=colour)
         
         # Determine if direction indicator should be before or after reference piece
         # For simplicity, we'll use the same logic as in the original code
         # In a real implementation, this would be determined based on the actual positions
         if direction_indicator == '-' and piece_id < reference_piece_id:
             # Left: indicator before
-            return cls(f"{piece_id} {direction_indicator}{reference_piece_id}")
+            return cls(f"{piece_id} {direction_indicator}{reference_piece_id}", colour=colour)
         else:
             # Right, Top-right, Bottom-right: indicator after
-            return cls(f"{piece_id} {reference_piece_id}{direction_indicator}")
+            return cls(f"{piece_id} {reference_piece_id}{direction_indicator}", colour=colour)
     
     @classmethod
-    def pass_move(cls):
+    def pass_move(cls, colour: Optional[str] = None):
         """Create a pass move."""
-        return cls("pass", is_pass=True)
+        return cls("pass", is_pass=True, colour=colour)
     
     def __str__(self):
         """Return the raw string representation."""
@@ -335,24 +337,27 @@ def move_to_boardspace(game: Game, move: Union[Move, NoMove]) -> MoveString:
     Returns:
         MoveString: The BoardSpace notation for the move
     """
+    # Get the colour of the player making the move
+    move_colour = move.colour
+    
     if isinstance(move, NoMove):
-        move_str = MoveString.pass_move()
+        move_str = MoveString.pass_move(colour=move_colour)
         # Store the color for later use
-        move_str.pass_color = move.colour
+        move_str.pass_color = move_colour
         return move_str
     
     piece_id = get_piece_id(move.piece)
     
     # First move of the game
     if len(game.grid) == 0:
-        return MoveString(piece_id)
+        return MoveString(piece_id, colour=move_colour)
     
     # Check if this is a beetle moving onto another piece
     if move.piece.name == pieces.BEETLE and game.grid.get(move.new_location):
         target_stack = game.grid.get(move.new_location)
         target_piece = target_stack[-1]
         target_piece_id = get_piece_id(target_piece)
-        return MoveString(f"{piece_id} {target_piece_id}")
+        return MoveString(f"{piece_id} {target_piece_id}", colour=move_colour)
     
     # Find a reference piece and direction
     ref_piece_info, direction = find_reference_piece(game, move.new_location)
@@ -365,9 +370,9 @@ def move_to_boardspace(game: Game, move: Union[Move, NoMove]) -> MoveString:
     
     # Determine if the direction indicator comes before or after the reference piece
     if DIRECTION_INDICATOR_BEFORE.get(calculate_relative_direction(ref_loc, move.new_location), False):
-        return MoveString(f"{piece_id} {direction}{ref_piece_id}")
+        return MoveString(f"{piece_id} {direction}{ref_piece_id}", colour=move_colour)
     else:
-        return MoveString(f"{piece_id} {ref_piece_id}{direction}")
+        return MoveString(f"{piece_id} {ref_piece_id}{direction}", colour=move_colour)
 
 
 def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
@@ -382,14 +387,18 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         Union[Move, NoMove]: The internal move representation
         
     Note:
-        The color of the move is determined by the current player's turn in replay_trajectory,
+        The color of the move is determined by the MoveString's colour attribute if available,
+        otherwise by the current player's turn in replay_trajectory,
         not by the piece color. This is especially important for pillbug moves.
     """
     if move_str.is_pass:
-        # For pass moves, we need to extract the color from the piece_id if available
-        # Otherwise, determine the color of the player whose turn it is
-        if hasattr(move_str, 'pass_color') and move_str.pass_color:
+        # For pass moves, use the MoveString's colour attribute if available
+        if move_str.colour is not None:
+            return NoMove(move_str.colour)
+        # Otherwise, use pass_color if available
+        elif hasattr(move_str, 'pass_color') and move_str.pass_color:
             return NoMove(move_str.pass_color)
+        # As a last resort, determine the color of the player whose turn it is
         else:
             colors = list(game.player_turns.keys())
             current_color = min(colors, key=lambda c: game.player_turns[c])
@@ -430,10 +439,12 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
         if ref_piece_info is None:
             raise ValueError(f"Reference piece not found: {move_str.reference_piece_id}")
         _, ref_loc = ref_piece_info
-        # Note: The actual color will be set in replay_trajectory based on player turn
+        # Use the MoveString's colour attribute if available
+        move_colour = move_str.colour if move_str.colour is not None else None
         return Move(piece=piece,
-                    current_location=current_location, current_stack_idx=current_stack_idx,
-                    new_location=ref_loc, new_stack_idx=len(game.grid[ref_loc]))
+                     current_location=current_location, current_stack_idx=current_stack_idx,
+                     new_location=ref_loc, new_stack_idx=len(game.grid[ref_loc]),
+                     colour=move_colour)
     
     # Find the reference piece
     ref_piece_info = find_piece_by_id(game, move_str.reference_piece_id)
@@ -472,10 +483,12 @@ def boardspace_to_move(game: Game, move_str: MoveString) -> Union[Move, NoMove]:
 
     new_stack_height = len(game.grid.get(target_loc, []))
 
-    # Note: The actual color will be set in replay_trajectory based on player turn
+    # Use the MoveString's colour attribute if available
+    move_colour = move_str.colour if move_str.colour is not None else None
     return Move(piece=piece,
-                current_location=current_location, current_stack_idx=current_stack_idx,
-                new_location=target_loc, new_stack_idx=new_stack_height)
+                 current_location=current_location, current_stack_idx=current_stack_idx,
+                 new_location=target_loc, new_stack_idx=new_stack_height,
+                 colour=move_colour)
 
 
 def save_trajectory(moves: List[MoveString], filename: str):
@@ -510,37 +523,94 @@ def load_trajectory(filename: str) -> List[MoveString]:
     return moves
 
 
-def replay_trajectory(moves: List[MoveString]) -> Game:
+def replay_trajectory(moves: List[MoveString], turn_info: Optional[str] = None) -> Game:
     """
     Replay a trajectory to get the final game state.
     
     Args:
         moves: The list of moves to replay
+        turn_info: Optional turn information string (e.g., "Black[18]")
         
     Returns:
         Game: The final game state
     """
     from hive.game_engine.game_state import initial_game
+    from hive.game_engine.moves import is_pillbug_move
+    
     game = initial_game()
     
     # Track the current player's turn (WHITE starts in Hive)
     current_player = WHITE
     
-    for move_str in moves:
+    # Set the colour attribute for each move based on whose turn it is
+    for i, move_str in enumerate(moves):
+        # Set the colour attribute of the MoveString
+        move_str.colour = current_player
+        
         move = boardspace_to_move(game, move_str)
+        
+        # Check if this is likely a pillbug move based on piece color vs current player
+        is_likely_pillbug_move = False
+        if isinstance(move, Move) and move.current_location is not None:
+            # If the piece color is different from the current player's color,
+            # it's definitely a pillbug move
+            if move.piece.colour != current_player:
+                is_likely_pillbug_move = True
         
         # Set the move color based on the current player's turn, not the piece color
         # This is especially important for pillbug moves that can move opponent pieces
         if isinstance(move, Move):
-            move.colour = current_player
+            # If it's likely a pillbug move, set the flag
+            if is_likely_pillbug_move:
+                move = Move(
+                    piece=move.piece,
+                    current_location=move.current_location,
+                    current_stack_idx=move.current_stack_idx,
+                    new_location=move.new_location,
+                    new_stack_idx=move.new_stack_idx,
+                    colour=current_player,
+                    pillbug_moved_other_piece=True
+                )
+            else:
+                move.colour = current_player
         elif isinstance(move, NoMove):
             move.colour = current_player
             
         # Play the move
         game = move.play(game)
         
+        # If we didn't already mark it as a pillbug move, check using the standard function
+        if not is_likely_pillbug_move and isinstance(game.move, Move) and is_pillbug_move(game, game.move):
+            # Create a new move with the pillbug_moved_other_piece flag set to True
+            updated_move = Move(
+                piece=game.move.piece,
+                current_location=game.move.current_location,
+                current_stack_idx=game.move.current_stack_idx,
+                new_location=game.move.new_location,
+                new_stack_idx=game.move.new_stack_idx,
+                colour=game.move.colour,
+                pillbug_moved_other_piece=True
+            )
+            # Update the game's move
+            game = game.set("move", updated_move)
+        
         # Switch to the other player's turn
         current_player = BLACK if current_player == WHITE else WHITE
+    
+    # If turn information is provided, set the current turn accordingly
+    if turn_info:
+        # Parse turn information (e.g., "Black[18]")
+        import re
+        match = re.match(r"(White|Black)\[(\d+)\]", turn_info)
+        if match:
+            turn_color = match.group(1)
+            turn_number = int(match.group(2))
+            
+            # Set the current turn
+            if turn_color == "White":
+                game = game.set("current_turn", WHITE)
+            elif turn_color == "Black":
+                game = game.set("current_turn", BLACK)
     
     return game
 

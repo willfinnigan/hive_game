@@ -14,6 +14,8 @@ class Piece(NamedTuple):
     name: str
     number: int
 
+
+
 Stack = Tuple[Piece, ...]
 Location = Tuple[int, int]
 Grid = PMap  # PMap[Location, Stack]
@@ -25,13 +27,13 @@ class GridLocation(NamedTuple):
 # Game state class
 class Game(PRecord):
     grid = pmap_field(tuple, tuple)  # Location (tuple of ints) to Stack (tuple of Pieces)
+    current_turn = field(type=str, initial=WHITE)  # Current player's colour
     player_turns = pmap_field(str, int)  # Colour to turn count
     queens = pmap_field(str, tuple)  # Colour to Location (tuple of ints)
     parent = field(initial=None)  # Self-reference to Game, can't use type='Game' directly
     move = field(initial=None)  # Move that led to this game state
     unplayed_pieces = pmap_field(str, tuple)  # Colour to unplayed pieces (tuple of Pieces
-
-
+    piece_moved_last_turn = field(initial=None)  # Piece that was moved last turn
 
 def create_standard_pieces(colour: str) -> Tuple[Piece, ...]:
     return (Piece(colour, pieces.QUEEN, 1),
@@ -54,7 +56,8 @@ def create_expanded_pieces(colour: str) -> Tuple[Piece, ...]:
     return standard_pieces + expanded_pieces
 
 def initial_game(grid: Optional[Grid|dict] = None,
-                 pieces_function = create_expanded_pieces) -> Game:
+                 pieces_function = create_expanded_pieces,
+                 current_turn=WHITE) -> Game:
     white_pieces = pieces_function(WHITE)
     black_pieces = pieces_function(BLACK)
 
@@ -75,9 +78,10 @@ def initial_game(grid: Optional[Grid|dict] = None,
 
     # remove any played pieces from the unplayed pieces
     unplayed_pieces = {
-        WHITE: tuple(piece for piece in white_pieces if piece not in grid.values()),
-        BLACK: tuple(piece for piece in black_pieces if piece not in grid.values())
+        WHITE: tuple(piece for piece in white_pieces if not any(piece in stack for stack in grid.values())),
+        BLACK: tuple(piece for piece in black_pieces if not any(piece in stack for stack in grid.values()))
     }
+    
     unplayed_pieces = pmap(unplayed_pieces)
 
     return Game(
@@ -85,6 +89,7 @@ def initial_game(grid: Optional[Grid|dict] = None,
         player_turns={WHITE: 0, BLACK: 0},
         queens=queens,
         unplayed_pieces=unplayed_pieces,
+        current_turn=current_turn,
     )
 
 def create_immutable_grid(grid_dict: dict) -> Grid:

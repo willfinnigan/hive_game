@@ -1,7 +1,6 @@
 from platform import node
 from typing import List, Optional
 
-from hive.game_engine.game_functions import current_turn_colour
 from hive.game_engine.game_state import WHITE, Colour, Game, Grid, Piece, initial_game
 from hive.game_engine.grid_functions import get_placeable_locations, positions_around_location
 from hive.game_engine.moves import get_possible_moves
@@ -14,7 +13,7 @@ class Graph():
     def __init__(self, game: Game):
 
         self.game = game
-        self.current_colour = current_turn_colour(game)
+        self.current_colour = game.current_turn
         
         self.nodes = []
         self.node_dict = {}

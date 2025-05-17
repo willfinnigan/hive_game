@@ -7,7 +7,7 @@ from hive.game_engine.grid_functions import pieces_around_location, check_is_val
 from hive.game_engine.game_state import BLACK, WHITE, Game, Grid, Piece, Location, Colour
 
 def current_turn_colour(game: Game) -> Colour:
-    return [colour for colour, turns in game.player_turns.items() if turns == min(game.player_turns.values())][0]
+    return game.current_turn
 
 def check_queen_timely_placement(game: Game, colour: Colour, moves_to_queen=4):
     if game.player_turns[colour] < moves_to_queen:
@@ -53,6 +53,10 @@ def place_piece(game: Game, piece: Piece, location: Location, move=None) -> Game
     # Increment the player's turn count
     current_turn = game.player_turns.get(piece.colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(piece.colour, current_turn + 1))
+    game_mutable = game_mutable.set('current_turn', opposite_colour(piece.colour))
+
+    # set piece moved last turn
+    game_mutable = game_mutable.set('piece_moved_last_turn', None)
 
     if move is not None:
         game_mutable = game_mutable.set('move', move)
@@ -97,10 +101,14 @@ def move_piece(game: Game, current_location: Location, location: Location, colou
     # Increment player's turn count
     current_turn = game.player_turns.get(colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(colour, current_turn + 1))
+    game_mutable = game_mutable.set('current_turn', opposite_colour(colour))
 
     game_mutable = game_mutable.set('grid', updated_grid)
 
     game_mutable = game_mutable.set('parent', game)  # Store reference to previous game state
+
+    # set piece moved last turn
+    game_mutable = game_mutable.set('piece_moved_last_turn', piece)
 
     if move is not None:
         game_mutable = game_mutable.set('move', move)
@@ -117,9 +125,13 @@ def pass_move(game: Game, colour: str, move=None) -> Game:
     # Increment player's turn count
     current_turn = game.player_turns.get(colour, 0)
     game_mutable = game_mutable.set('player_turns', game.player_turns.set(colour, current_turn + 1))
+    game_mutable = game_mutable.set('current_turn', opposite_colour(colour))
 
     if move is not None:
         game_mutable = game_mutable.set('move', move)
+
+    # set piece moved last turn
+    game_mutable = game_mutable.set('piece_moved_last_turn', None)
 
     new_game = game_mutable.persistent()
     new_game = new_game.set('parent', game)  # Store reference to previous game state

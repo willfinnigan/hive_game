@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv, global_mean_pool
 from torch_geometric.data import Data, Batch
 
-from hive.game_engine.game_functions import current_turn_colour
 from hive.game_engine.game_state import Piece, initial_game
 from hive.ml.game_to_graph import Graph
 from hive.ml.graph_to_pyg import graph_to_pytorch

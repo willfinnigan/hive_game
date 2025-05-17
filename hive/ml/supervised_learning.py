@@ -6,7 +6,6 @@ import torch
 from torch_geometric.data import InMemoryDataset, Data, Dataset
 from tqdm import tqdm
 
-from hive.game_engine.game_functions import current_turn_colour, get_winner
 from hive.game_engine.game_state import Game
 from hive.game_engine.player_functions import get_players_possible_moves_or_placements
 from hive.ml.game_to_graph import Graph
@@ -102,30 +101,48 @@ if __name__ == '__main__':
     # Create iterator once
     loader_iter = iter(loader)
     
-    for i in range(1):
+    for i in range(total_batches):
         games = next(loader_iter)
-        for j, game in enumerate(games[0:4]):
+        for j, game in enumerate(games):
             print(f"Game {i * batch_size + j + 1}/{len(loader)}")
             # want to check that the moves made in the game match the possible moves identified by the engine
             while game.move is not None:
-                print(game.player_turns)
-                colour = game.move.get_colour()
-                possible_moves = get_players_possible_moves_or_placements(colour, game.parent)
+                #print(f"{game.parent.player_turns} - Game turn={game.parent.current_turn} - move={game.move}")
+                turn_colour = game.parent.current_turn
+                #print(f"Turn: {turn_colour} - Move: {game.move}")
+                possible_moves = get_players_possible_moves_or_placements(turn_colour, game.parent)
+
+                #print(game.move)
+                #print(game.parent.move)
 
                 matches = [mv for mv in possible_moves if mv == game.move]
 
-                # if len(matches) == 0 and possible_moves != []:
-                #     print(game.player_turns)
-                #     print(game.move)
-                #     print(game_to_text(game))
-                #     print(game_to_text(game.parent))
+                if len(matches) == 0 and possible_moves != []:
+                    print(game.player_turns)
+                    print(game.move)
+                    print(game_to_text(game))
+                    print(game_to_text(game.parent))
 
-                #     for mv in possible_moves:
-                #         print(f"{mv} != {game.move}")
+                    for mv in possible_moves:
+                        print(f"{mv} != {game.move}")
 
                     
-                #     print(game.parent.grid)
-                #     raise ValueError(f"Move not in possible moves")
+                    # Find the game string for debugging - get this from the file
+                    game_string_idx = i * batch_size + j
+                    print(f"Game string index: {game_string_idx}")
+                    filepath = f"{Path(__file__).parents[2]}/game_strings/combined.txt"
+                    with open(filepath, 'r') as f:
+                        lines = f.readlines()
+                        if game_string_idx < len(lines):
+                            game_string = lines[game_string_idx].strip()
+                            print(game_string)
+                        else:
+                            print(f"Game string index {game_string_idx} out of range")
+                    
+                    print(game.parent.grid)
+                    raise ValueError(f"Move not in possible moves")
+                
+                
 
                 game = game.parent
     

@@ -147,7 +147,7 @@ def test_replay_trajectory():
     ]
     
     # Replay the trajectory
-    final_game = replay_trajectory(moves)
+    final_game = replay_trajectory(moves, None)
     
     # Check the final game state
     assert len(final_game.grid) == 2  # 2 pieces on the board

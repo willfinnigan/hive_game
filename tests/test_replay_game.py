@@ -17,7 +17,7 @@ def test_load_game():
     i = 5
     print(game_strings[i])
 
-    game = replay_trajectory(game_strings[i].moves)
+    game = replay_trajectory(game_strings[i].moves, game_strings[i].turn)
 
     # is there a winner?
     winner = get_winner(game)

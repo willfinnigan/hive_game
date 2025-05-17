@@ -13,6 +13,7 @@ class Move:
     new_location: Location
     new_stack_idx: int
     colour: Colour = None
+    pillbug_moved_other_piece: bool = False
 
     def __post_init__(self):
         # For pillbugs, we pass in the colour
@@ -30,19 +31,40 @@ class Move:
     def get_colour(self):
         return self.piece.colour
 
-    def __repr__(self):
+    def _move_string(self):
         piece_name = f"{self.piece.colour}_{self.piece.name}_{self.piece.number}"
         if self.current_location is None:
             return f"Place({piece_name} at {self.new_location})"
         return f"Move ({piece_name} from {self.current_location}_{self.current_stack_idx} to {self.new_location}_{self.new_stack_idx})"
-    
+
+    def __repr__(self):
+        move_string = self._move_string()
+        pb = ""
+        if self.pillbug_moved_other_piece:
+            pb = "PB "
+        return f"{pb}{move_string}_s"
+
+    def __eq__(self, other):
+        if not isinstance(other, Move):
+            return False
+
+        # did not include pillbug because can't get this information from replay game strings.
+        return (self.piece == other.piece and
+                self.current_location == other.current_location and
+                self.new_location == other.new_location and
+                self.current_stack_idx == other.current_stack_idx and
+                self.new_stack_idx == other.new_stack_idx and
+                self.colour == other.colour)
+
+
     def __hash__(self):
-        return hash(str(self))
+        return hash(str(self._move_string()))
 
 
 @dataclass
 class NoMove:
     colour: Colour
+    pillbug_moved_other_piece: bool = False
 
     def play(self, game) -> Game:
         new_game = pass_move(game, self.colour, move=self)
@@ -301,9 +323,18 @@ def get_mosquito_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
         adj_stack = grid.get(adj_pos, ())
         if len(adj_stack) == 0:
             continue
-        adj_piece = adj_stack[-1]
+
+        if stack_idx >= len(adj_stack):
+            continue  # mosquito is higher than the adjacent stack, so no adjacency
+
+        # if the adjacent piece is under another piece, then we can ignore it
+        if len(adj_stack) > stack_idx:
+            continue  # adjacent piece is under another piece
+
+        adj_piece = adj_stack[stack_idx]
         if adj_piece.name == pieces.MOSQUITO:
             # If the adjacent piece is a mosquito, we can not move
+            print("Can't move, adjacent mosquito")
             return []
 
     # If mosquito is on top of another piece, it can only move like a beetle
@@ -343,14 +374,58 @@ def get_mosquito_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
 
     return all_moves
 
+def check_can_slide_with_height(grid: Grid, from_loc: Location, to_loc: Location, height_threshold: int) -> bool:
+    """
+    Check if a piece can slide from one location to another considering stack heights.
+    
+    Args:
+        grid: The game grid
+        from_loc: The starting location
+        to_loc: The destination location
+        height_threshold: The height threshold - stacks taller than this will block movement
+        
+    Returns:
+        bool: True if the piece can slide, False if blocked by stacks
+    """
+    # Calculate direction vector
+    dq = to_loc[0] - from_loc[0]
+    dr = to_loc[1] - from_loc[1]
+    
+    # Determine positions that would create a narrow gap based on direction
+    if (dq, dr) == (2, 0):  # moving right
+        pos_1, pos_2 = (to_loc[0] - 1, to_loc[1] - 1), (to_loc[0] - 1, to_loc[1] + 1)
+    elif (dq, dr) == (-2, 0):  # moving left
+        pos_1, pos_2 = (to_loc[0] + 1, to_loc[1] - 1), (to_loc[0] + 1, to_loc[1] + 1)
+    elif (dq, dr) == (1, -1):  # moving up+right
+        pos_1, pos_2 = (to_loc[0] - 2, to_loc[1]), (to_loc[0] + 1, to_loc[1] + 1)
+    elif (dq, dr) == (-1, -1):  # moving up+left
+        pos_1, pos_2 = (to_loc[0] - 1, to_loc[1] + 1), (to_loc[0] + 2, to_loc[1])
+    elif (dq, dr) == (1, 1):  # moving down+right
+        pos_1, pos_2 = (to_loc[0] - 2, to_loc[1]), (to_loc[0] + 1, to_loc[1] - 1)
+    elif (dq, dr) == (-1, 1):  # moving down+left
+        pos_1, pos_2 = (to_loc[0] - 1, to_loc[1] - 1), (to_loc[0] + 2, to_loc[1])
+    else:
+        raise Exception(f"Invalid move direction: from {from_loc} to {to_loc}, delta: ({dq}, {dr})")
+    
+    # Check if either position has a stack taller than the height threshold
+    stack1 = grid.get(pos_1, ())
+    stack2 = grid.get(pos_2, ())
+    
+    # Movement is only blocked if BOTH positions have stacks AND both stacks are taller than the threshold
+    if stack1 and stack2:
+        if len(stack1) > height_threshold and len(stack2) > height_threshold:
+            return False
+    
+    return True
+
 def get_pillbug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     """Get all possible moves for a pillbug piece
     
     The Pillbug has two abilities:
         - It can move one space around the hive like the Queen Bee.
-        - It has a special ability to move other pieces: 
-            Once per turn, instead of moving, the Pillbug can move an adjacent unstacked piece (friendly or opposing) 
-            up onto itself, and then down onto  an empty space adjacent to itself,
+        - It has a special ability to move other pieces:
+            Once per turn, instead of moving, the Pillbug can move an adjacent unstacked piece (friendly or opposing)
+            up onto itself, and then down onto an empty space adjacent to itself,
             provided the move doesn't break the hive.
 
           This special ability cannot be used on a piece that was moved in the opponent's last turn.
@@ -362,11 +437,12 @@ def get_pillbug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     if len(stack) == 0:
         raise ValueError("No pieces at the given location")
 
-    #if beatle on top of pillbug, no moves
-    if len(stack) > 1:  #
+    # If beetle on top of pillbug, no moves
+    if len(stack) > 1:
         return []
 
     pillbug_piece = stack[stack_idx]
+    pillbug_height = len(stack)  # Height of the pillbug stack
 
     # Moves the pillbug can make - 1 move away like queen
     pillbug_moves = get_queen_moves(grid, loc, stack_idx)
@@ -400,12 +476,24 @@ def get_pillbug_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     moves = []
     for adj_piece, pos in adjacent_pieces:
         for move_loc in locations:
+            # Check if the piece can slide to the pillbug (first step)
+            # Any stack higher than the pillbug's height will block
+            if not check_can_slide_with_height(grid, pos, loc, pillbug_height):
+                continue
+                
+            # Check if the piece can slide from the pillbug to the destination (second step)
+            # Any stack higher than the pillbug's height will block
+            if not check_can_slide_with_height(grid, loc, move_loc, pillbug_height):
+                continue
+                
+            # If both checks pass, add the move
             move = Move(piece=adj_piece,
                         current_stack_idx=0,
                         current_location=pos,
                         new_stack_idx=0,
                         new_location=move_loc,
-                        colour=pillbug_piece.colour)
+                        colour=pillbug_piece.colour,
+                        pillbug_moved_other_piece=True)
             moves.append(move)
 
     return pillbug_moves + moves
@@ -492,7 +580,6 @@ move_functions = {pieces.ANT: get_ant_moves,
                   pieces.PILLBUG: get_pillbug_moves,
                   pieces.LADYBUG: get_ladybug_moves,
                   }
-
 def get_possible_moves(grid: Grid, location: Location, stack_idx: int) -> List[Move]:
     stack = grid.get(location)
     if not stack:
@@ -500,5 +587,85 @@ def get_possible_moves(grid: Grid, location: Location, stack_idx: int) -> List[M
 
     piece = stack[-1]
     return move_functions[piece.name](grid, location, stack_idx)
+
+
+def is_pillbug_move(game, move):
+    """
+    Determine if a move was made using a pillbug's special ability.
+    
+    This function analyzes a move in the context of a game state to determine
+    if the move was likely made by a pillbug. It uses a two-step process:
+    1. Check if there's a pillbug adjacent to both the start and end positions
+    2. Check if the piece could have moved on its own without the pillbug
+    
+    Args:
+        game: The game state after the move was made
+        move: The move to analyze
+        
+    Returns:
+        bool: True if the move was likely made by a pillbug, False otherwise
+    """
+    # If it's a placement or a pass, it's not a pillbug move
+    if move.current_location is None or isinstance(move, NoMove):
+        return False
+    
+    # First, check if the move is already marked as a pillbug move
+    if move.pillbug_moved_other_piece:
+        return True
+        
+    # Step 1: Check if there's a pillbug adjacent to both the start and end positions
+    start_loc = move.current_location
+    end_loc = move.new_location
+    
+    # Find pillbugs adjacent to the start location
+    pillbugs_adjacent_to_start = []
+    for adj_loc in positions_around_location(start_loc):
+        stack = game.grid.get(adj_loc, ())
+        for i, piece in enumerate(stack):
+            if piece.name == pieces.PILLBUG and i == len(stack) - 1:  # Must be on top
+                pillbugs_adjacent_to_start.append((piece, adj_loc))
+    
+    # If no pillbugs adjacent to start, it's not a pillbug move
+    if not pillbugs_adjacent_to_start:
+        return False
+    
+    # Check if any of these pillbugs are also adjacent to the end location
+    pillbugs_adjacent_to_both = []
+    for pillbug, pillbug_loc in pillbugs_adjacent_to_start:
+        if pillbug_loc in positions_around_location(end_loc):
+            pillbugs_adjacent_to_both.append((pillbug, pillbug_loc))
+    
+    # If no pillbugs adjacent to both positions, it's not a pillbug move
+    if not pillbugs_adjacent_to_both:
+        return False
+    
+    # Step 2: Check if this move could have been made WITHOUT the pillbug
+    
+    # Case 1: Different color - definitely a pillbug move
+    if game.parent is None:
+        return False
+        
+    current_player_color = game.parent.current_turn  # Color of player who just moved
+    if move.piece.colour != current_player_color:
+        return True
+    
+    # Case 2: Same color - check if the piece could have moved on its own
+    # Get all possible moves for this piece
+    
+    # We need to check the game state BEFORE the move was made
+    parent_game = game.parent
+    possible_moves = get_possible_moves(parent_game.grid, start_loc, move.current_stack_idx)
+    
+    # Check if the actual move is in the list of possible moves
+    # (excluding pillbug-assisted moves)
+    for possible_move in possible_moves:
+        if (possible_move.new_location == end_loc and
+            not possible_move.pillbug_moved_other_piece):
+            # The piece could have moved there on its own
+            return False
+    
+    # If we get here, the piece couldn't have moved there on its own
+    # So it must be a pillbug move
+    return True
 
 

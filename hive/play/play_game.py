@@ -5,7 +5,7 @@ from hive.play.agents.board_score.ai_generated_board_score import score_board_ad
 from hive.play.agents.board_score.simple_board_score import score_board_queens
 from hive.play.agents.minimax_ai import MinimaxAI
 from hive.play.agents.random_ai import RandomAI
-from hive.game_engine.game_functions import current_turn_colour, get_winner
+from hive.game_engine.game_functions import get_winner
 from hive.play.agents.scored_board_state_ai import ScoreBoardIn1Move_AI
 from hive.play.agents.scored_moves_based_ai import ScoreMovesAI
 from hive.play.player import Player
@@ -14,8 +14,7 @@ from hive.game_engine.game_state import WHITE, BLACK, Game, initial_game
 
 
 def _get_next_player(game: Game, player_1, player_2) -> Player:
-    colour = current_turn_colour(game)
-    if colour == player_1.colour:
+    if game.current_turn == player_1.colour:
         return player_1
     else:
         return player_2

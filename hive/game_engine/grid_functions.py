@@ -74,8 +74,7 @@ def one_move_away(grid: Grid, loc: Location, positions_to_ignore: Tuple[Location
 
     connected_spaces = []
     for space in empty_one_move_away:
-        # Combine conditions with short-circuit evaluation for better performance
-        # Check if there's at least one adjacent piece first (fastest check)
+        # Check if there's at least one adjacent piece first
         has_adjacent_piece = False
         for p in positions_around_location(space):
             if p in one_away and grid.get(p, None) is not None:
@@ -89,7 +88,7 @@ def one_move_away(grid: Grid, loc: Location, positions_to_ignore: Tuple[Location
         if not is_position_connected(grid, space, positions_to_ignore=positions_to_ignore):
             continue
             
-        if not check_can_slide_to(grid, loc, space):
+        if not check_can_slide_to(grid, loc, space, positions_to_ignore=positions_to_ignore):
             continue
             
         connected_spaces.append(space)
@@ -118,7 +117,7 @@ def beetle_one_move_away(grid: Grid, loc: Location, positions_to_ignore: Tuple[L
 
 
 @lru_cache(maxsize=None)  # Cache the results for better performance
-def check_can_slide_to(grid: Grid, loc: Location, to_loc: Location):
+def check_can_slide_to(grid: Grid, loc: Location, to_loc: Location, positions_to_ignore: Tuple[Location] = None) -> bool:
     """Check if a piece can slide to a location"""
     #  eg (5,3) -> (6,2) is not possible because of pieces at (4,2) and (7, 3)
     
@@ -143,7 +142,12 @@ def check_can_slide_to(grid: Grid, loc: Location, to_loc: Location):
     else:
         raise Exception(f"Invalid move direction: from {loc} to {to_loc}, delta: ({dq}, {dr})")
 
-    # Short-circuit: check if both positions have pieces (can't slide)
+    # Check if positions to ignore are provided and exclude them
+    if positions_to_ignore:
+        ignore_set = set(positions_to_ignore)
+        if pos_1 in ignore_set or pos_2 in ignore_set:
+            return True  # Ignore these positions for the sliding check
+
     return not (grid.get(pos_1) is not None and grid.get(pos_2) is not None)
 
 

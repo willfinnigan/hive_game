@@ -175,7 +175,7 @@ def test_mosquito_advanced():
             (6, 2): (Piece(colour='WHITE', name='ANT', number=3),),
             (3, 3): (Piece(colour='BLACK', name='PILLBUG', number=1),),
             (2, 6): (Piece(colour='WHITE', name='BEETLE', number=2),), (3, -1): (
-        Piece(colour='WHITE', name='GRASSHOPPER', number=3), Piece(colour='BLACK', name='BEETLE', number=2)),
+            Piece(colour='WHITE', name='GRASSHOPPER', number=3), Piece(colour='BLACK', name='BEETLE', number=2)),
             (7, 1): (Piece(colour='BLACK', name='GRASSHOPPER', number=2),),
             (-1, -1): (Piece(colour='WHITE', name='LADYBUG', number=1),),
             (1, 5): (Piece(colour='WHITE', name='ANT', number=2),),
@@ -203,4 +203,43 @@ def test_mosquito_advanced():
     print(possible_moves)
 
     assert len(possible_moves) == 6
+
+
+def test_mosquito_advanced_2():
+    grid = {(-4, -2): (Piece(colour='BLACK', name='PILLBUG', number=1),),
+            (-5, 1): (Piece(colour='BLACK', name='SPIDER', number=1),),
+            (0, -4): (Piece(colour='WHITE', name='GRASSHOPPER', number=2),),
+            (-3, -1): (Piece(colour='BLACK', name='QUEEN', number=1),),
+            (-3, -7): (Piece(colour='WHITE', name='LADYBUG', number=1),),
+            (4, 0): (Piece(colour='BLACK', name='ANT', number=3),),
+            (3, -1): (Piece(colour='BLACK', name='MOSQUITO', number=1),),  # <--this one
+            (-5, -3): (Piece(colour='BLACK', name='ANT', number=1),),
+            (-1, -1): (Piece(colour='BLACK', name='LADYBUG', number=1),),
+            (6, 0): (Piece(colour='WHITE', name='SPIDER', number=1),),
+            (-3, -3): (Piece(colour='BLACK', name='SPIDER', number=2),),
+            (-5, -5): (Piece(colour='BLACK', name='ANT', number=2),),
+            (-4, -6): (Piece(colour='BLACK', name='GRASSHOPPER', number=1),),
+            (-4, 0): (Piece(colour='WHITE', name='SPIDER', number=2),),
+            (-1, -3): (Piece(colour='WHITE', name='ANT', number=1),), (2, 0): (Piece(colour='WHITE', name='QUEEN', number=1), Piece(colour='BLACK', name='BEETLE', number=1), Piece(colour='WHITE', name='MOSQUITO', number=1)),
+            (1, -1): (Piece(colour='WHITE', name='PILLBUG', number=1),),
+            (-6, -4): (Piece(colour='WHITE', name='ANT', number=2),),
+            (-2, -6): (Piece(colour='WHITE', name='ANT', number=3),)}
+
+    game = initial_game(grid=grid)
+
+    print()
+    print(game_to_text(game))
+
+    # Move (BLACK_MOSQUITO_1 from (3, -1)_0 to (0, -2)_0)
+    possible_moves = get_possible_moves(game.grid, (3, -1), 0)
+
+    for move in possible_moves:
+        print(move)
+
+    move_locations = [move.new_location for move in possible_moves]
+    print(move_locations)
+
+    assert (0, -2) in move_locations
+
+
 
