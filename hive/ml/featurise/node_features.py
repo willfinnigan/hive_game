@@ -10,7 +10,7 @@ from hive.game_engine.moves import get_possible_moves
 NodeFeatureMethod = Callable[[Optional[Piece], Location, int, Colour, Grid], List[float|int]]
 
 # One hot encoding for piece types
-# eg [0, 1, 0, 0, 0]
+# eg [0, 1, 0, 0, 0, 0, 0, 0]
 PIECE_TYPES = {pieces.QUEEN: 0, 
                pieces.ANT: 1, 
                pieces.SPIDER: 2, 
@@ -44,7 +44,10 @@ def featurise_piece_affiliation(piece: Optional[Piece], loc: Location, i: int, c
 
 def featurise_stack_height(piece: Optional[Piece], loc: Location, i: int, colour: Colour, grid: Grid) -> List[float|int]:
     """Featurise the stack height.  If the piece is None, then all values are 0 which represents an empty location"""
-    return [i+1]  # Stack height is the index of the piece in the stack
+    if piece is None:
+        return [0]
+    else:
+        return [i+1]  # Stack height is the index of the piece in the stack
 
 def featurise_moves(piece: Optional[Piece], loc: Location, i: int, colour: Colour, grid: Grid) -> List[float|int]:
     """Featurise moves

@@ -4,7 +4,7 @@ from hive.game_engine.game_functions import move_piece, place_piece
 from hive.game_engine.game_state import BLACK, WHITE, Game, Piece, create_immutable_grid, initial_game
 from hive.game_engine.grid_functions import positions_around_location
 from hive.game_engine.moves import get_possible_moves
-from hive.game_engine.player_functions import get_players_possible_moves_or_placements
+from hive.game_engine.player_functions import get_players_possible_moves_or_placements, get_players_moves
 from hive.render.to_text import game_to_text
 
 
@@ -107,5 +107,29 @@ def test_beetle_advanced():
     locs_around = sorted(positions_around_location((2, 2)))
 
     assert move_locations == locs_around
+
+
+def test_can_move_beetle_on_double_stack():
+    grid = {(0, 0): (Piece(colour="WHITE", name="ANT", number=1),
+                     Piece(colour="WHITE", name="BEETLE", number=1),
+                     Piece(colour="BLACK", name="BEETLE", number=1)),
+            (1, 1): (Piece(colour="WHITE", name="QUEEN", number=1),),
+            (-1, -1): (Piece(colour="BLACK", name="SPIDER", number=1),), }
+    game = initial_game(grid=grid)
+
+    print()
+    print(game_to_text(game))
+
+    # Get possible moves for the beetle
+    black_moves = get_players_moves('BLACK', game)
+    print(black_moves)
+
+    assert len(black_moves) > 5
+
+
+
+
+
+
 
 

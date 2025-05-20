@@ -42,19 +42,30 @@ class Move:
         pb = ""
         if self.pillbug_moved_other_piece:
             pb = "PB "
-        return f"{pb}{move_string}_s"
+        return f"{pb}{move_string}"
 
     def __eq__(self, other):
         if not isinstance(other, Move):
             return False
 
-        # did not include pillbug because can't get this information from replay game strings.
-        return (self.piece == other.piece and
-                self.current_location == other.current_location and
-                self.new_location == other.new_location and
-                self.current_stack_idx == other.current_stack_idx and
-                self.new_stack_idx == other.new_stack_idx and
-                self.colour == other.colour)
+        """Two separate comparisons because when moving want to check the piece number,
+        but when placing only care about the piece name (can be any number)"""
+
+        if self.current_location is None:
+            return (self.piece.name == other.piece.name and
+                    self.new_location == other.new_location and
+                    self.current_stack_idx == other.current_stack_idx and
+                    self.new_stack_idx == other.new_stack_idx and
+                    self.colour == other.colour)
+
+        else:
+            # did not include pillbug because can't get this information from replay game strings.
+            return (self.piece == other.piece and
+                    self.current_location == other.current_location and
+                    self.new_location == other.new_location and
+                    self.current_stack_idx == other.current_stack_idx and
+                    self.new_stack_idx == other.new_stack_idx and
+                    self.colour == other.colour)
 
 
     def __hash__(self):

@@ -6,7 +6,7 @@ from hive.game_engine.errors import NoQueenError
 from hive.game_engine.game_functions import check_queen_timely_placement
 from hive.game_engine.game_state import Colour, Game
 from hive.game_engine.grid_functions import get_placeable_locations
-from hive.game_engine.moves import Move, get_possible_moves
+from hive.game_engine.moves import Move, NoMove, get_possible_moves
 from hive.game_engine.pieces import QUEEN, PILLBUG
 
 
@@ -18,6 +18,11 @@ def get_players_possible_moves_or_placements(colour: Colour, game: Game) -> List
     moves = _all_placements(colour, game)  # can always place pieces
     if game.queens.get(colour) is not None:  # but can only move once queen is placed
         moves += get_players_moves(colour, game)
+
+    # if no moves, return a pass
+    if len(moves) == 0:
+        moves.append(NoMove(colour=colour))
+
     return moves
 
 def get_players_moves(colour: Colour, game: Game) -> List[Move]:
@@ -59,13 +64,27 @@ def _play_queen_placements(colour: Colour, game: Game) -> List[Move]:
                                    new_stack_idx=0))
     return possible_moves
 
-def _all_placements(colour: Colour, game: Game) -> List[Move]:
+
+def _all_placements(colour: Colour, game: Game, one_per_type=True) -> List[Move]:
     """ Return all possible placements of pieces """
 
-    # all placeable locations * all pieces
+    if one_per_type == True:
+        # one piece of each type
+        created = set()
+        unplayed = []
+        for piece in game.unplayed_pieces[colour]:
+            # if the piece has already been created, skip it
+            if piece.name in created:
+                continue
+            created.add(piece.name)
+            unplayed.append(piece)
+    else:
+        # all unplayed pieces
+        unplayed = game.unplayed_pieces[colour]
+
     possible_moves = []
     placeable_locations = get_placeable_locations(game.grid, colour)
-    for piece in game.unplayed_pieces[colour]:
+    for piece in unplayed:
         for location in placeable_locations:
             possible_moves.append(Move(piece=piece,
                                        current_location=None,

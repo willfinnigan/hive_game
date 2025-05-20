@@ -79,35 +79,66 @@ class GameDataLoader:
             return []
         
         games = []
+        errors = 0
         
         with open(self.filepath, 'r') as f:
             for i in range(start_idx, end_idx):
                 f.seek(self.line_positions[i])
                 line = f.readline()
                 
+                # Check if line is empty or too short
+                if not line or len(line.strip()) < 5:
+                    print(f"Error at position {i}: Line is empty or too short")
+                    errors += 1
+                    continue
+                
                 try:
                     parts = line.strip().split(";")
-                    game_string = GameString(
-                        units=parts[0],
-                        result=parts[1],
-                        turn=parts[2],
-                        moves=[MoveString(mv) for mv in parts[3:]]
-                    )
+                    
+                    # Check if we have enough parts
+                    if len(parts) < 4:  # Need at least units, result, turn, and one move
+                        print(f"Error at position {i}: Line has insufficient parts ({len(parts)})")
+                        print(f"Line content: {line.strip()[:100]}...")  # Print first 100 chars of the line
+                        errors += 1
+                        continue
+                    
+                    try:
+                        game_string = GameString(
+                            units=parts[0],
+                            result=parts[1],
+                            turn=parts[2],
+                            moves=[MoveString(mv) for mv in parts[3:]]
+                        )
+                    except IndexError as e:
+                        print(f"Error at position {i}: IndexError while creating GameString")
+                        print(f"Parts: {parts}")
+                        print(f"Exception: {e}")
+                        errors += 1
+                        continue
                     
                     try:
                         # Convert GameString to Game object
                         game = replay_trajectory(game_string.moves, game_string.turn)
                         if game is not None:
                             games.append(game)
+                        else:
+                            print(f"Error at position {i}: replay_trajectory returned None")
+                            errors += 1
                     except Exception as e:
                         print(f"Error replaying game at position {i}")
-                        print(e)
+                        print(f"Exception: {e}")
+                        errors += 1
                         continue
                         
                 except Exception as e:
                     print(f"Error parsing line at position {i}")
-                    print(e)
+                    print(f"Exception: {e}")
+                    print(f"Line content: {line.strip()[:100]}...")  # Print first 100 chars of the line
+                    errors += 1
                     continue
+        
+        if errors > 0:
+            print(f"Batch {batch_idx}: {errors} errors out of {end_idx - start_idx} games")
         
         return games
     
@@ -128,24 +159,47 @@ class GameDataLoader:
             f.seek(self.line_positions[idx])
             line = f.readline()
             
+            # Check if line is empty or too short
+            if not line or len(line.strip()) < 5:  # Minimum valid line should have at least a few characters
+                print(f"Error at position {idx}: Line is empty or too short")
+                return None
+            
             try:
                 parts = line.strip().split(";")
-                game_string = GameString(
-                    units=parts[0],
-                    result=parts[1],
-                    turn=parts[2],
-                    moves=[MoveString(mv) for mv in parts[3:]]
-                )
+                
+                # Check if we have enough parts
+                if len(parts) < 4:  # Need at least units, result, turn, and one move
+                    print(f"Error at position {idx}: Line has insufficient parts ({len(parts)})")
+                    print(f"Line content: {line.strip()[:100]}...")  # Print first 100 chars of the line
+                    return None
+                
+                try:
+                    game_string = GameString(
+                        units=parts[0],
+                        result=parts[1],
+                        turn=parts[2],
+                        moves=[MoveString(mv) for mv in parts[3:]]
+                    )
+                except IndexError as e:
+                    print(f"Error at position {idx}: IndexError while creating GameString")
+                    print(f"Parts: {parts}")
+                    print(f"Exception: {e}")
+                    return None
                 
                 try:
                     # Convert GameString to Game object
-                    return replay_trajectory(game_string.moves, game_string.turn)
+                    game = replay_trajectory(game_string.moves, game_string.turn)
+                    if game is None:
+                        print(f"Error at position {idx}: replay_trajectory returned None")
+                        return None
+                    return game
                 except Exception as e:
                     print(f"Error replaying game at position {idx}")
-                    print(e)
+                    print(f"Exception: {e}")
                     return None
                     
             except Exception as e:
                 print(f"Error parsing line at position {idx}")
-                print(e)
+                print(f"Exception: {e}")
+                print(f"Line content: {line.strip()[:100]}...")  # Print first 100 chars of the line
                 return None
