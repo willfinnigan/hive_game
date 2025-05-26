@@ -4,11 +4,11 @@ from hive.game_engine.game_state import Colour, Game
 from hive.game_engine.grid_functions import pieces_around_location
 
 
-
 def score_board_queens(game: Game, colour: Colour) -> int:
     """Use hard-coded rules to score the board state for a given colour"""
-    per_queen_surrounded = -5
-    per_enemy_queen_surrounded = 5
+    # score is between -1 and 1
+    per_queen_surrounded = -1/6
+    per_enemy_queen_surrounded = 1/6
 
     score = 0
     our_queen_location = game.queens.get(colour)

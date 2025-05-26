@@ -35,6 +35,20 @@ class Game(PRecord):
     unplayed_pieces = pmap_field(str, tuple)  # Colour to unplayed pieces (tuple of Pieces
     piece_moved_last_turn = field(initial=None)  # Piece that was moved last turn
 
+
+def create_reduced_pieces(colour: str) -> Tuple[Piece, ...]:
+    """A minimum hive game"""
+    return (Piece(colour, pieces.QUEEN, 1),
+            Piece(colour, pieces.ANT, 1),
+            Piece(colour, pieces.SPIDER, 1),
+            Piece(colour, pieces.SPIDER, 2),
+            Piece(colour, pieces.GRASSHOPPER, 1),
+            Piece(colour, pieces.GRASSHOPPER, 2),
+            Piece(colour, pieces.PILLBUG, 1),
+            Piece(colour, pieces.MOSQUITO, 1),
+            Piece(colour, pieces.LADYBUG, 1)
+            )
+
 def create_standard_pieces(colour: str) -> Tuple[Piece, ...]:
     return (Piece(colour, pieces.QUEEN, 1),
             Piece(colour, pieces.ANT, 1),
@@ -56,7 +70,7 @@ def create_expanded_pieces(colour: str) -> Tuple[Piece, ...]:
     return standard_pieces + expanded_pieces
 
 def initial_game(grid: Optional[Grid|dict] = None,
-                 pieces_function = create_expanded_pieces,
+                 pieces_function=create_expanded_pieces,
                  current_turn=WHITE) -> Game:
     white_pieces = pieces_function(WHITE)
     black_pieces = pieces_function(BLACK)

@@ -1,3 +1,4 @@
+import time
 from hive.game_engine.moves import NoMove
 from hive.ml.featurise.graph_to_pyg import game_to_pytorch
 from hive.play.agents.random_ai import RandomAI
@@ -19,14 +20,19 @@ def play(player_1, player_2, game=None, max_turns=None):
 
     turn = 0
     while get_winner(game) is None and (max_turns is None or turn < max_turns):
+        t0 = time.time()
         turn += 1
         player = _get_next_player(game, player_1, player_2)
         move = player.get_move(game)
-        print(f"Turn {game.player_turns[player.colour]}: {player.colour} - {move}")
+        #print(f"Turn {game.player_turns[player.colour]}: {player.colour} - {move}")
         game = move.play(game)
+        t1 = time.time()
+        print(f"Time taken: {t1 - t0:.4f} seconds")
 
-        data = game_to_pytorch(game)
-        print(data)
+        #data = game_to_pytorch(game)
+        #t2 = time.time()
+        #print(f"Data conversion time: {t2 - t1:.4f} seconds")
+        #print(data)
 
         if not isinstance(move, NoMove):
             print(game_to_text(game, highlight_piece_at=move.new_location))

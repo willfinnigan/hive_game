@@ -21,9 +21,9 @@ gatv2 = GATConvNet(in_channels=128,
                    dropout=0.1)
 
 task_heads = nn.ModuleDict({
-    "move_predictor": MovePredictor(in_channels=128//4,
+    "policy": MovePredictor(in_channels=128//4,
                                     hidden_dim=128),
-    "value_predictor": ValuePredictor(in_channels=128//4,
+    "value": ValuePredictor(in_channels=128//4,
                                       hidden_dim=128)
 })
 

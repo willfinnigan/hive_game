@@ -15,39 +15,38 @@ Strategy = Callable[[List[Move], Game], List[Tuple[int, Move]]]
 @dataclass
 class MoveScores:
     move_to_queen: int = 5
-    piece_already_at_queen: int = -5
-    move_away_from_queen: int = 3
+    piece_already_at_queen: int = -3
+    move_away_from_queen: int = 1
 
-    play_ant: int = 4
-    play_beetle: int = 1
-    play_grasshopper: int = 1
-    play_spider: int = 1
-    play_queen: int = 3
+    play_ant: int = 0
+    play_beetle: int = 0
+    play_grasshopper: int = 0
+    play_spider: int = 0
+    play_queen: int = 0
 
-def score_move_by_queen(move, 
+def score_move_by_queen(move,
+                        game,
                         locs_around_current_which_contain_pieces, 
                         locs_around_move_which_contain_pieces, 
                         scores: MoveScores) -> int:
 
     # look at current location - are we already attacking enemy queen?
     for loc in locs_around_current_which_contain_pieces:
-        stack = move.game.grid.get(loc, ())
+        stack = game.grid.get(loc, ())
         piece = stack[-1] if stack else None
         if piece.name == pieces.QUEEN and piece.colour != move.piece.colour:
             return scores.piece_already_at_queen  # already next to a enemy queen - don't move!
 
-        
     # look at new location - are we attacking enemy queen?
     for loc in locs_around_move_which_contain_pieces:
-        stack = move.game.grid.get(loc, ())
+        stack = game.grid.get(loc, ())
         piece = stack[-1] if stack else None
         if piece is not None and piece.name == pieces.QUEEN and piece.colour != move.piece.colour:
             return scores.move_to_queen  # move next to enemy queen
-        
 
     # look at current location - are there allied queens we should move away from
     for loc in locs_around_move_which_contain_pieces:
-        stack = move.game.grid.get(loc, ())
+        stack = game.grid.get(loc, ())
         piece = stack[-1] if stack else None
         if piece is not None and piece.name == pieces.QUEEN and piece.colour == move.piece.colour:
             return scores.move_away_from_queen
@@ -86,7 +85,7 @@ def prioritise_moves(moves: List[Move], game: Game, scores: MoveScores = None) -
             locs_around_move_which_contain_pieces = pieces_around_location(game.grid, move.new_location)
 
             # score the move
-            score += score_move_by_queen(move, locs_around_current_which_contain_pieces, locs_around_move_which_contain_pieces, scores)
+            score += score_move_by_queen(move, game, locs_around_current_which_contain_pieces, locs_around_move_which_contain_pieces, scores)
         else:
             # score the piece being played
             score += score_play_piece(move, scores)
@@ -97,6 +96,42 @@ def prioritise_moves(moves: List[Move], game: Game, scores: MoveScores = None) -
     random.shuffle(scored_moves)
     scored_moves = sorted(scored_moves, key=lambda x: x[0], reverse=True)
     return scored_moves
+
+
+def score_moves_simple(moves: List[Move], game: Game, scores: MoveScores = None) -> List[Tuple[int, Move]]:
+    """Only score moves which move to enemy queen"""
+    scores = []
+    for move in moves:
+        move_score = 0
+        # if move is NoMove
+        if isinstance(move, NoMove):
+            scores.append((move_score, move))
+            continue
+
+        if move.current_location is not None:
+            # if already next to enemy queen, don't move
+            locs_around_current_which_contain_pieces = pieces_around_location(game.grid, move.current_location)
+            for loc in locs_around_current_which_contain_pieces:
+                stack = game.grid.get(loc, ())
+                piece = stack[-1] if stack else None
+                if piece.name == pieces.QUEEN and piece.colour != move.piece.colour:
+                    scores.append((-1, move))
+                    continue
+
+            # look at new location - are we attacking enemy queen?
+            locs_around_move_which_contain_pieces = pieces_around_location(game.grid, move.new_location)
+            for loc in locs_around_move_which_contain_pieces:
+                stack = game.grid.get(loc, ())
+                piece = stack[-1] if stack else None
+                if piece is not None and piece.name == pieces.QUEEN and piece.colour != move.piece.colour:
+                    move_score = 1
+                    break
+
+        scores.append((move_score, move))
+
+    return scores
+
+
 
 
 

@@ -1,4 +1,5 @@
-from typing import List
+from functools import lru_cache
+from typing import List, Union
 
 from hive.game_engine.game_state import Game, Colour
 
@@ -10,7 +11,8 @@ from hive.game_engine.moves import Move, NoMove, get_possible_moves
 from hive.game_engine.pieces import QUEEN, PILLBUG
 
 
-def get_players_possible_moves_or_placements(colour: Colour, game: Game) -> List[Move]:
+@lru_cache(maxsize=None)
+def get_players_possible_moves_or_placements(colour: Colour, game: Game) -> List[Union[Move|NoMove]]:
 
     if _must_play_queen(colour, game):
         return _play_queen_placements(colour, game)

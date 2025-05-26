@@ -15,18 +15,23 @@ class Move:
     colour: Colour = None
     pillbug_moved_other_piece: bool = False
 
+    # cache the game
+    new_game: Optional[Game] = None
+
     def __post_init__(self):
         # For pillbugs, we pass in the colour
         if self.colour is None:
             self.colour = self.piece.colour
 
     def play(self, game) -> Game:
-        if self.current_location is None:
-            new_game = place_piece(game, self.piece, self.new_location, move=self)
-        else:
-            new_game = move_piece(game, self.current_location, self.new_location, self.colour, move=self)
 
-        return new_game
+        if self.new_game is None:
+            if self.current_location is None:
+                self.new_game = place_piece(game, self.piece, self.new_location, move=self)
+            else:
+                self.new_game = move_piece(game, self.current_location, self.new_location, self.colour, move=self)
+
+        return self.new_game
     
     def get_colour(self):
         return self.piece.colour
@@ -77,9 +82,13 @@ class NoMove:
     colour: Colour
     pillbug_moved_other_piece: bool = False
 
+    # cache the game
+    new_game: Optional[Game] = None
+
     def play(self, game) -> Game:
-        new_game = pass_move(game, self.colour, move=self)
-        return new_game
+        if self.new_game is None:
+            self.new_game = pass_move(game, self.colour, move=self)
+        return self.new_game
     
     def get_colour(self):
         return self.colour

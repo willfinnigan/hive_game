@@ -228,6 +228,8 @@ class Node():
         if stack is None:
             raise ValueError(f"Node {self.node_id} has no stack in the grid.")
         
+        # TODO - need to change this from using the grid - because we can create empty nodes above stacks that are not in the grid.
+
         # if theres a piece above this piece add an edge to it.  eg stack is len 2 and height is 1
         if len(stack) > self.stack_idx+1:  # if the total stack size is taller than the current height, then theres a piece above
             above_node = graph.nodes_by_location.get((self.location, self.stack_idx+1))

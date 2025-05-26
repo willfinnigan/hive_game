@@ -30,7 +30,6 @@ def graph_to_pytorch(graph: Graph) -> Data:
         edge_indices.append([i_node_idx, j_node_idx])
         edge_features.append(edge_feats)
 
-
     # move edges are the first edges
     move_edge_idxs = [i for i in range(len(graph.edge_moves))]
 
