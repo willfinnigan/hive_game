@@ -111,7 +111,7 @@ class Graph():
         """Create move edges for all nodes."""
         opponent_colour = BLACK if self.current_colour == WHITE else WHITE
         current_moves = get_players_possible_moves_or_placements(self.current_colour, self.game)
-        opponent_moves = get_players_possible_moves_or_placements(self.game.current_turn, self.game)
+        opponent_moves = get_players_possible_moves_or_placements(opponent_colour, self.game)
         
         for move in current_moves:
             # if move is Pass, skip it

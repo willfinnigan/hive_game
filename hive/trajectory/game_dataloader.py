@@ -9,7 +9,6 @@ from hive.game_engine.game_state import Game
 from hive.trajectory.game_string import GameString
 from hive.trajectory.boardspace import MoveString, replay_trajectory
 
-
 class GameDataLoader:
     """
     A data loader that keeps a persistent file handle for better performance.

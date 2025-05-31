@@ -15,10 +15,10 @@ filepath = f"{folder}/game_strings/combined.txt"
 train_dataset = HiveLazyGameDataset(filepath, batch_size=64)
 train_loader = DataLoader(
     dataset=train_dataset,
-    batch_size=64,
-    shuffle=True,
-    num_workers=8,
-    prefetch_factor=3,
+    batch_size=128,
+    shuffle=False,
+    num_workers=14,
+    #prefetch_factor=1,
     collate_fn=collate_fn)
 
 progress_bar = tqdm(train_loader)

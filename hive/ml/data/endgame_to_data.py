@@ -64,17 +64,21 @@ def add_value_y_label(data: Data, game: Game, winner, step: int, total_length: i
     if step > 0:
         game_progress = (step / total_length)
         value = value * (value_discount ** game_progress)
+    else:
+        game_progress = 0
 
     # Store value label in the Data object
     data.value = torch.tensor(value, dtype=torch.float)
+    data.game_progress = 1 - game_progress
     return data
 
 
 
 def process_endgame(game: Game,
-                    include_moves=True,
+                    include_moves=False,
                     include_value=True,
-                    value_discount=0.5) -> List[Data]:
+                    value_discount=0.5,
+                    skip_initial=8) -> List[Data]:
     """Taking a game in endgame state, return Data objects with move labels and winner information"""
     winner = get_winner(game)
 
@@ -86,6 +90,8 @@ def process_endgame(game: Game,
     while tmp_game.move is not None:
         total_length += 1
         tmp_game = tmp_game.parent
+
+    steps_to_stop_at = total_length - skip_initial
 
     # add terminal state (no moves)
     graph = Graph(game)
@@ -126,6 +132,13 @@ def process_endgame(game: Game,
         game = game.parent  # move to the previous game state
         steps += 1
 
+        if steps >= steps_to_stop_at:
+            break
+
+    # Clean up
+    del graph
+    del game
+
     # return data for training
     return all_data
 
@@ -143,8 +156,7 @@ if __name__ == '__main__':
     total_batches = (len(loader) + batch_size - 1) // batch_size
 
     # load first game
-    game = loader.get_game(100)
-    print(f"Game loaded with {len(game)} moves")
+    game = loader.get_game(10)
 
     # process the endgame
     all_data = process_endgame(game, include_moves=True, include_value=True)
@@ -154,6 +166,7 @@ if __name__ == '__main__':
         print(f"Data object {i}:")
         print(f"  Move labels: {data.move_labels}")
         print(f"  Value: {data.value}")
+        print(f"  Game progress: {data.game_progress}")
         print(f"  Number of nodes: {data.num_nodes}")
         print(f"  Edge index shape: {data.edge_index.shape}")
         print(f"  Edge attributes shape: {data.edge_attr.shape if data.edge_attr is not None else 'None'}")
