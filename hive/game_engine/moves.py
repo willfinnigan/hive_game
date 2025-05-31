@@ -99,6 +99,12 @@ class NoMove:
     def __hash__(self):
         return hash(str(self))
 
+    def __eq__(self, other):
+        if not isinstance(other, NoMove):
+            return False
+        return self.colour == other.colour
+
+
 def get_ant_moves(grid: Grid, loc: Location, stack_idx: int) -> List[Move]:
     """Get all possible moves for an ant piece
     

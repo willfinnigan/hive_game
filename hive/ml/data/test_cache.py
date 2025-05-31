@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 from hive.ml.data.dataset import HiveLazyGameDataset
 
-def test_caching_performance():
+def caching_performance_test():
     """
     Test the performance improvement from caching.
     

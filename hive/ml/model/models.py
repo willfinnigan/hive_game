@@ -27,10 +27,16 @@ task_heads = nn.ModuleDict({
                                       hidden_dim=128)
 })
 
+value_only_head = nn.ModuleDict({
+    "value": ValuePredictor(in_channels=128//4,
+                                      hidden_dim=128)
+})
+
+
 
 hive_gatv2 = HiveGNN(encoder=encoder,
                      conv_net=gatv2,
-                     task_heads=task_heads,
+                     task_heads=value_only_head,
                      pooling_type="mean")
 
 if __name__ == "__main__":
