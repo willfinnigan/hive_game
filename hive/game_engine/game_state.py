@@ -34,6 +34,61 @@ class Game(PRecord):
     move = field(initial=None)  # Move that led to this game state
     unplayed_pieces = pmap_field(str, tuple)  # Colour to unplayed pieces (tuple of Pieces
     piece_moved_last_turn = field(initial=None)  # Piece that was moved last turn
+    
+    def __hash__(self):
+        """
+        Fast hash function for the game state.
+        Only considers grid and current turn for performance.
+        """
+        # Create a hashable representation of the grid
+        grid_items = []
+        for loc, stack in self.grid.items():
+            # Convert each piece in the stack to a hashable tuple
+            pieces_tuple = tuple((p.colour, p.name, p.number) for p in stack)
+            grid_items.append((loc, pieces_tuple))
+        
+        # Sort for consistent ordering and convert to tuple
+        grid_hash = hash(tuple(sorted(grid_items)))
+        
+        # Combine with current turn
+        return hash((grid_hash, self.current_turn))
+    
+    def __eq__(self, other):
+        """
+        Fast equality method using hash comparison.
+        """
+        if not isinstance(other, Game):
+            return False
+            
+        # If hashes are different, objects are definitely not equal
+        if hash(self) != hash(other):
+            return False
+            
+        # If hashes match, do a simple grid comparison
+        if self.current_turn != other.current_turn:
+            return False
+            
+        # Compare grid keys
+        if set(self.grid.keys()) != set(other.grid.keys()):
+            return False
+            
+        # Compare pieces at each location
+        for loc in self.grid.keys():
+            self_stack = self.grid[loc]
+            other_stack = other.grid[loc]
+            
+            if len(self_stack) != len(other_stack):
+                return False
+                
+            for i in range(len(self_stack)):
+                self_piece = self_stack[i]
+                other_piece = other_stack[i]
+                if (self_piece.colour != other_piece.colour or
+                    self_piece.name != other_piece.name or
+                    self_piece.number != other_piece.number):
+                    return False
+                    
+        return True
 
 
 def create_reduced_pieces(colour: str) -> Tuple[Piece, ...]:

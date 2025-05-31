@@ -97,3 +97,4 @@ class SQLiteCache:
         conn.close()
         
         return result[0] if result else 0
+

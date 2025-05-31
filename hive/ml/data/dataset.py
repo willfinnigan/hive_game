@@ -80,6 +80,8 @@ class HiveLazyGameDataset(Dataset):
         if self.use_cache and all_data is not None:
             cache_key = f"{self.filepath}:{idx}"
             self.cache.set(cache_key, all_data)
+
+        game = None # Clear the game object to free memory
             
         return all_data
     
@@ -161,3 +163,6 @@ def collate_fn(batch):
     batched_data = torch_geometric.data.Batch.from_data_list(flattened_batch)
     
     return batched_data
+
+
+
