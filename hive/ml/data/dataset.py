@@ -43,7 +43,6 @@ class HiveLazyGameDataset(Dataset):
         # Keep track of valid indices
         self.valid_indices = set()
         self.invalid_indices = set()
-        self.data = {}
         
         # Initialize cache if enabled
         if self.use_cache:
@@ -81,8 +80,8 @@ class HiveLazyGameDataset(Dataset):
             cache_key = f"{self.filepath}:{idx}"
             self.cache.set(cache_key, all_data)
 
-        game = None # Clear the game object to free memory
-            
+        del game # Clear the game object to free memory
+
         return all_data
     
     def is_cached(self, idx: int) -> bool:

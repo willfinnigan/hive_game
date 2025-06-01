@@ -318,7 +318,7 @@ if __name__ == "__main__":
     folder = Path(__file__).parents[3]
     filepath = f"{folder}/game_strings/train_games.txt"
     batch_size = 128
-    num_epochs = 20  # Set number of epochs
+    num_epochs = 50  # Set number of epochs
 
     # Determine device
     if torch.cuda.is_available():

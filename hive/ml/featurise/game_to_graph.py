@@ -73,12 +73,14 @@ class Graph():
 
         # add an empty node above every stack where there is a piece that can move there
         opponent_colour = BLACK if self.current_colour == WHITE else WHITE
-        current_moves = get_players_moves(self.current_colour, self.game)
-        opponent_moves = get_players_moves(opponent_colour, self.game)
+        current_moves = get_players_possible_moves_or_placements(self.current_colour, self.game)
+        opponent_moves = get_players_possible_moves_or_placements(opponent_colour, self.game)
 
         move_locations_w_stack_idx = set()
         for move in current_moves+opponent_moves:
-            if move.new_stack_idx <= 0:
+            if isinstance(move, NoMove) == True:
+                continue
+            if move.new_stack_idx == 0:
                 continue  # not interested in moves to ground level - already covered
 
             # add the location and height to the set

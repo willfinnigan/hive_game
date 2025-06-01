@@ -2,7 +2,6 @@ from pathlib import Path
 import torch
 from torch_geometric.data import Data
 
-
 from typing import List
 from hive.game_engine.game_functions import get_winner
 from hive.game_engine.game_state import Game
@@ -36,20 +35,20 @@ def create_move_labels(graph: Graph, expert_move):
     # are all the labels 0?
     if all(label == 0 for label in labels):
         pass
-        #print(f'No valid moves found for expert move: {expert_move}')
-        #raise ValueError("All labels are 0, no valid moves found.")
+        # print(f'No valid moves found for expert move: {expert_move}')
+        # raise ValueError("All labels are 0, no valid moves found.")
 
     return labels
 
 
 def add_move_y_labels(data: Data, graph: Graph, expert_move):
-
     # Create move labels
     moves = create_move_labels(graph, expert_move)
 
     # Store move labels and winner directly in the Data object
     data.move_labels = torch.tensor(moves, dtype=torch.float)
     return data
+
 
 def add_value_y_label(data: Data, game: Game, winner, step: int, total_length: int, value_discount):
     # Determine winner value
@@ -71,7 +70,6 @@ def add_value_y_label(data: Data, game: Game, winner, step: int, total_length: i
     data.value = torch.tensor(value, dtype=torch.float)
     data.game_progress = 1 - game_progress
     return data
-
 
 
 def process_endgame(game: Game,
@@ -141,12 +139,6 @@ def process_endgame(game: Game,
 
     # return data for training
     return all_data
-
-
-
-
-
-
 
 
 if __name__ == '__main__':

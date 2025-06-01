@@ -1,3 +1,4 @@
+import gc
 from pathlib import Path
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -12,17 +13,20 @@ multiprocessing.set_start_method('fork', force=True)
 folder = Path(__file__).parents[3]
 filepath = f"{folder}/game_strings/combined.txt"
 
-train_dataset = HiveLazyGameDataset(filepath, batch_size=64)
+train_dataset = HiveLazyGameDataset(filepath, batch_size=64, use_cache=True)
 train_loader = DataLoader(
     dataset=train_dataset,
-    batch_size=128,
+    batch_size=32,
     shuffle=False,
-    num_workers=14,
-    #prefetch_factor=1,
+    num_workers=16,
+    prefetch_factor=1,
     collate_fn=collate_fn)
 
 progress_bar = tqdm(train_loader)
 
 for batch_idx, batch_data in enumerate(progress_bar):
     pass
+
+    del batch_data
+    gc.collect()
 
