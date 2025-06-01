@@ -496,13 +496,31 @@ if __name__ == "__main__":
     if CHECKPOINT_PATH:
         if os.path.exists(CHECKPOINT_PATH):
             print(f"Loading checkpoint from {CHECKPOINT_PATH}")
-            checkpoint = torch.load(CHECKPOINT_PATH)
+            
+            # Move model to device before loading state dict
+            model.to(device)
+            
+            # Load checkpoint with map_location to ensure tensors are loaded to the correct device
+            checkpoint = torch.load(CHECKPOINT_PATH, map_location=device)
             
             # Load model state
             model.load_state_dict(checkpoint['model_state_dict'])
             
             # Load optimizer state
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            # First create a new optimizer with the model parameters on the correct device
+            optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+            
+            # Then load the optimizer state
+            # This is a workaround for the device mismatch issue
+            optimizer_state_dict = checkpoint['optimizer_state_dict']
+            
+            # Manually move optimizer state to the correct device
+            for state in optimizer_state_dict['state'].values():
+                for k, v in state.items():
+                    if isinstance(v, torch.Tensor):
+                        state[k] = v.to(device)
+            
+            optimizer.load_state_dict(optimizer_state_dict)
             
             # Get the starting epoch (to continue from)
             start_epoch = checkpoint['epoch']
