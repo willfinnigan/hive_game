@@ -32,6 +32,29 @@ print(mlflow_dir)
 mlflow.set_tracking_uri(f"file://{mlflow_dir}")
 
 
+def create_train_loader(dataset, batch_size, num_workers=2, prefetch_factor=2):
+    """
+    Create a DataLoader for the training dataset.
+
+    Args:
+        dataset: The HiveLazyGameDataset instance
+        batch_size: Batch size for training
+        num_workers: Number of worker threads for data loading
+
+    Returns:
+        DataLoader instance
+    """
+    return DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        prefetch_factor=prefetch_factor,
+        persistent_workers=False,
+        collate_fn=collate_fn
+    )
+
+
 def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
           save_path=None, save_every=5, experiment_name="hive_training",
           start_epoch=0, train_history=None):
@@ -82,21 +105,17 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
         # Move model to device
         model.to(device)
 
-        # Create training dataset and loader
-        # Create dataset with appropriate logging frequency
+        # Create training dataset (only once)
         train_dataset = HiveLazyGameDataset(
             filepath,
             batch_size=batch_size,
         )
-
-        train_loader = DataLoader(
-            dataset=train_dataset,
+        train_loader = create_train_loader(
+            train_dataset,
             batch_size=batch_size,
-            shuffle=True,
-            num_workers=4,  # Reduced from 16 to prevent memory leaks
-            prefetch_factor=2,  # Increased from 1
-            persistent_workers=False,  # Don't keep workers alive between epochs
-            collate_fn=collate_fn)
+            num_workers=4,
+            prefetch_factor=1
+        )
 
         # Training metrics - initialize from history if provided
         train_losses = train_history['train_losses'] if train_history else []
@@ -236,15 +255,7 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
                 if device.type == 'mps' and batch_idx % 20 == 0:
                     torch.mps.empty_cache()
                 
-                # Check if DataLoader workers are leaking memory
-                if batch_idx % 50 == 0 and hasattr(train_loader, '_iterator'):
-                    # Try to reset DataLoader iterator to release worker memory
-                    try:
-                        train_loader._iterator._shutdown_workers()
-                    except:
-                        pass
-
-            # Calculate epoch averages
+                # Calculate epoch averages
             if num_batches > 0:
                 avg_epoch_loss = epoch_loss / num_batches
                 avg_value_loss = epoch_value_loss / num_batches
@@ -298,6 +309,10 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
             collected = gc.collect()
             mlflow.log_metric("gc_collected_objects", collected, step=epoch)
             
+            # Clean up DataLoader and workers
+            del train_loader
+            gc.collect()
+            
             # Check GPU memory if using CUDA or MPS
             if device.type == 'cuda':
                 cuda_allocated = torch.cuda.memory_allocated(device) / (1024**2)
@@ -314,6 +329,14 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
                 print(f"[MPS] Clearing MPS cache at end of epoch")
                 # Force MPS cache clear
                 torch.mps.empty_cache()
+
+            # Create new DataLoader for next epoch
+            train_loader = create_train_loader(
+                train_dataset,
+                batch_size=batch_size,
+                num_workers=4,
+                prefetch_factor=1
+            )
 
             # Log epoch metrics to MLflow
             mlflow.log_metric("epoch_loss", avg_epoch_loss, step=epoch)

@@ -89,24 +89,26 @@ class HiveLazyGameDataset(Dataset):
             cache_key = f"{self.filepath}:{idx}"
             self.cache.set(cache_key, all_data)
 
-        # Explicitly clean up memory
-        del game  # Clear the game object to free memory
+        self.clean_up(game)
         
-        # Force garbage collection periodically (less frequent to reduce overhead)
-        if idx % self.gc_freq == 0:
-            # Log memory usage
-            process = psutil.Process(os.getpid())
-            mem_info = process.memory_info()
-            rss_mb = mem_info.rss / (1024**2)
-
-            # Force garbage collection
-            collected = gc.collect()
-            
-            # Clear MPS cache if available
-            if torch.backends.mps.is_available():
-                torch.mps.empty_cache()
             
         return all_data
+    
+    def clean_up(self, game: Game) -> None:
+        """Thoroughly delete all the game data to free memory."""
+
+        while game is not None:
+            # Delete the game object and its parent
+            try:
+                del game.move
+            except:
+                pass
+
+            parent = game.parent
+            del game
+            game = parent
+        gc.collect()
+
     
     def is_cached(self, idx: int) -> bool:
         """
