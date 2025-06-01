@@ -1,4 +1,7 @@
 from pathlib import Path
+import os
+import gc
+import psutil
 
 import torch
 import torch.nn.functional as F
@@ -77,13 +80,20 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
         model.to(device)
 
         # Create training dataset and loader
-        train_dataset = HiveLazyGameDataset(filepath, batch_size=batch_size)
+        # Create dataset with appropriate logging frequency
+        train_dataset = HiveLazyGameDataset(
+            filepath,
+            batch_size=batch_size,
+            log_frequency=50  # Log every 50 games to reduce overhead
+        )
+
         train_loader = DataLoader(
             dataset=train_dataset,
             batch_size=batch_size,
             shuffle=True,
-            num_workers=16,
-            prefetch_factor=1,
+            num_workers=4,  # Reduced from 16 to prevent memory leaks
+            prefetch_factor=2,  # Increased from 1
+            persistent_workers=False,  # Don't keep workers alive between epochs
             collate_fn=collate_fn)
 
         # Training metrics
@@ -93,6 +103,11 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
 
         model.train()
 
+        # Memory tracking variables
+        memory_usage = []
+        batch_times = []
+        last_batch_time = time.time()
+
         # Training loop over epochs
         for epoch in range(num_epochs):
             epoch_start_time = time.time()
@@ -101,6 +116,24 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
             value_accuracy = 0.0
             num_batches = 0
 
+            # Log memory usage at start of epoch
+            process = psutil.Process(os.getpid())
+            mem_info = process.memory_info()
+            print(f"\n[MEMORY] Epoch {epoch+1} start: RSS={mem_info.rss / (1024**2):.1f}MB, VMS={mem_info.vms / (1024**2):.1f}MB")
+            
+            # Force garbage collection before epoch
+            collected = gc.collect()
+            print(f"[GC] Collected {collected} objects before epoch {epoch+1}")
+            
+            # Check GPU memory if using CUDA or MPS
+            if device.type == 'cuda':
+                print(f"[CUDA] Allocated: {torch.cuda.memory_allocated(device) / (1024**2):.1f}MB")
+                print(f"[CUDA] Cached: {torch.cuda.memory_reserved(device) / (1024**2):.1f}MB")
+            elif device.type == 'mps':
+                print(f"[MPS] Using Metal Performance Shaders on Mac")
+                # Force MPS cache clear
+                torch.mps.empty_cache()
+                
             progress_bar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}")
 
             for batch_idx, batch_data in enumerate(progress_bar):
@@ -154,11 +187,60 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
                     'value_acc': f"{value_acc:.4f}"
                 })
 
+                # Track batch processing time
+                current_time = time.time()
+                batch_time = current_time - last_batch_time
+                batch_times.append(batch_time)
+                last_batch_time = current_time
+                
+                # Log memory every 5 batches (more frequent for large datasets)
+                if batch_idx % 5 == 0:
+                    mem_info = process.memory_info()
+                    memory_usage.append(mem_info.rss / (1024**2))  # RSS in MB
+                    
+                    # Calculate memory metrics
+                    rss_mb = mem_info.rss / (1024**2)
+                    vms_mb = mem_info.vms / (1024**2)
+                    
+                    # Log to MLFlow instead of just printing
+                    step = epoch * len(train_loader) + batch_idx
+                    mlflow.log_metric("memory_rss_mb", rss_mb, step=step)
+                    mlflow.log_metric("memory_vms_mb", vms_mb, step=step)
+                    mlflow.log_metric("batch_time", batch_time, step=step)
+
+                    
+                    # Check GPU memory if using CUDA or MPS
+                    if device.type == 'cuda':
+                        cuda_allocated = torch.cuda.memory_allocated(device) / (1024**2)
+                        cuda_reserved = torch.cuda.memory_reserved(device) / (1024**2)
+                        # Log CUDA memory to MLFlow
+                        mlflow.log_metric("cuda_allocated_mb", cuda_allocated, step=step)
+                        mlflow.log_metric("cuda_reserved_mb", cuda_reserved, step=step)
+                        # Try to clear CUDA cache
+                        torch.cuda.empty_cache()
+                    elif device.type == 'mps':
+                        # Log MPS usage (no direct metrics available)
+                        mlflow.log_metric("device_type", 1, step=step)  # 1 for MPS
+                        # Force MPS cache clear
+                        torch.mps.empty_cache()
+                
                 # Clear memory
                 del batch_data, outputs, value_preds, value_targets, loss, value_loss
-
-                import gc
+                
+                # More aggressive garbage collection
                 gc.collect()
+                
+                # Clear MPS cache if using MPS
+                if device.type == 'mps' and batch_idx % 20 == 0:
+                    torch.mps.empty_cache()
+                
+                # Check if DataLoader workers are leaking memory
+                if batch_idx % 50 == 0 and hasattr(train_loader, '_iterator'):
+                    # Try to reset DataLoader iterator to release worker memory
+                    try:
+                        train_loader._iterator._shutdown_workers()
+                    except:
+                        pass
 
             # Calculate epoch averages
             if num_batches > 0:
@@ -177,11 +259,66 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
 
             epoch_time = time.time() - epoch_start_time
 
+            # Log memory usage at end of epoch
+            mem_info = process.memory_info()
+            rss_mb = mem_info.rss / (1024**2)
+            vms_mb = mem_info.vms / (1024**2)
+            memory_change = rss_mb - memory_usage[0] if memory_usage else 0
+            
+            # Log to MLFlow
+            mlflow.log_metric("epoch_end_rss_mb", rss_mb, step=epoch)
+            mlflow.log_metric("epoch_end_vms_mb", vms_mb, step=epoch)
+            mlflow.log_metric("epoch_memory_change_mb", memory_change, step=epoch)
+            
+            # Print summary
+            print(f"\n[MEMORY] Epoch {epoch+1} end: RSS={rss_mb:.1f}MB, VMS={vms_mb:.1f}MB")
+            print(f"[MEMORY] Change during epoch: {memory_change:.1f}MB")
+            
+            # Check for memory growth trend
+            if len(memory_usage) > 10:
+                memory_growth = memory_usage[-1] - memory_usage[-10]
+                mlflow.log_metric("memory_growth_last_10_mb", memory_growth, step=epoch)
+                print(f"[MEMORY] Growth over last 10 measurements: {memory_growth:.1f}MB")
+                
+            # Check for batch time growth (indication of memory pressure)
+            if len(batch_times) > 10:
+                avg_first_10 = sum(batch_times[:10]) / 10
+                avg_last_10 = sum(batch_times[-10:]) / 10
+                time_ratio = avg_last_10/avg_first_10
+                
+                mlflow.log_metric("avg_batch_time_first_10", avg_first_10, step=epoch)
+                mlflow.log_metric("avg_batch_time_last_10", avg_last_10, step=epoch)
+                mlflow.log_metric("batch_time_ratio", time_ratio, step=epoch)
+                
+                print(f"[TIME] Avg batch time: first 10={avg_first_10:.3f}s, last 10={avg_last_10:.3f}s, ratio={time_ratio:.2f}x")
+            
+            # Force garbage collection after epoch
+            collected = gc.collect()
+            mlflow.log_metric("gc_collected_objects", collected, step=epoch)
+            
+            # Check GPU memory if using CUDA or MPS
+            if device.type == 'cuda':
+                cuda_allocated = torch.cuda.memory_allocated(device) / (1024**2)
+                cuda_reserved = torch.cuda.memory_reserved(device) / (1024**2)
+                
+                mlflow.log_metric("epoch_end_cuda_allocated_mb", cuda_allocated, step=epoch)
+                mlflow.log_metric("epoch_end_cuda_reserved_mb", cuda_reserved, step=epoch)
+                
+                print(f"[CUDA] Allocated: {cuda_allocated:.1f}MB")
+                print(f"[CUDA] Cached: {cuda_reserved:.1f}MB")
+                # Try to clear CUDA cache
+                torch.cuda.empty_cache()
+            elif device.type == 'mps':
+                print(f"[MPS] Clearing MPS cache at end of epoch")
+                # Force MPS cache clear
+                torch.mps.empty_cache()
+
             # Log epoch metrics to MLflow
             mlflow.log_metric("epoch_loss", avg_epoch_loss, step=epoch)
             mlflow.log_metric("epoch_value_loss", avg_value_loss, step=epoch)
             mlflow.log_metric("epoch_value_accuracy", avg_value_accuracy, step=epoch)
             mlflow.log_metric("epoch_time", epoch_time, step=epoch)
+            mlflow.log_metric("memory_usage_mb", mem_info.rss / (1024**2), step=epoch)
 
             # Print epoch summary
             print(f"\nEpoch {epoch + 1}/{num_epochs} completed in {epoch_time:.2f}s")
@@ -316,9 +453,14 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
 if __name__ == "__main__":
     # Set up file paths and parameters
     folder = Path(__file__).parents[3]
-    filepath = f"{folder}/game_strings/train_games.txt"
+    filepath = f"{folder}/game_strings/combined.txt"
     batch_size = 128
     num_epochs = 50  # Set number of epochs
+    
+    # Import memory monitoring
+    import psutil
+    process = psutil.Process(os.getpid())
+    print(f"Initial memory usage: {process.memory_info().rss / (1024**2):.1f}MB")
 
     # Determine device
     if torch.cuda.is_available():
@@ -330,6 +472,8 @@ if __name__ == "__main__":
 
     # Get model
     model = hive_gatv2
+
+
 
     # Set up optimizer with weight decay for regularization
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
@@ -350,6 +494,10 @@ if __name__ == "__main__":
     # mlflow.set_tracking_uri("http://localhost:5000")   # MLflow server
 
     # Start training with MLflow tracking
+    # Reduce number of workers to prevent memory issues
+    num_workers = 4  # Reduced from 16
+    print(f"Using {num_workers} DataLoader workers (reduced from 16)")
+    
     metrics = train(
         filepath=filepath,
         batch_size=batch_size,

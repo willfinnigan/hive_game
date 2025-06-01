@@ -2,7 +2,11 @@ from typing import List, Optional, Callable, Dict
 import torch
 import torch_geometric
 import os
+import gc
+import time
+import psutil
 from torch_geometric.data import Data, Dataset
+import torch.backends.mps
 
 from hive.game_engine.game_state import Game
 from hive.ml.data.endgame_to_data import process_endgame
@@ -28,13 +32,15 @@ class HiveLazyGameDataset(Dataset):
         batch_size: int = 100,
         max_skip_attempts: int = 100,
         cache_path: Optional[str] = None,
-        use_cache: bool = True
+        use_cache: bool = True,
+        log_frequency: int = 50  # How often to log memory usage (in number of games)
     ):
         super().__init__(None, transform, pre_transform)
         self.filepath = filepath
         self.batch_size = batch_size
         self.max_skip_attempts = max_skip_attempts
         self.use_cache = use_cache
+        self.log_frequency = log_frequency
         
         # Initialize the data loader
         self.loader = GameDataLoader(filepath, batch_size=batch_size)
@@ -60,6 +66,8 @@ class HiveLazyGameDataset(Dataset):
     
     def get(self, idx) -> Optional[List[Data]]:
         """Get a single game by index and convert to PyG Data."""
+        start_time = time.time()
+        
         # Try to get from cache first if caching is enabled
         if self.use_cache:
             cache_key = f"{self.filepath}:{idx}"
@@ -73,6 +81,7 @@ class HiveLazyGameDataset(Dataset):
             print(f"Unexpected error: Game at index {idx} is None")
             return None
 
+        # Process the game
         all_data = process_endgame(game)
         
         # Store in cache if caching is enabled
@@ -80,8 +89,23 @@ class HiveLazyGameDataset(Dataset):
             cache_key = f"{self.filepath}:{idx}"
             self.cache.set(cache_key, all_data)
 
-        del game # Clear the game object to free memory
+        # Explicitly clean up memory
+        del game  # Clear the game object to free memory
+        
+        # Force garbage collection periodically (less frequent to reduce overhead)
+        if idx % self.log_frequency == 0:
+            # Log memory usage
+            process = psutil.Process(os.getpid())
+            mem_info = process.memory_info()
+            rss_mb = mem_info.rss / (1024**2)
 
+            # Force garbage collection
+            collected = gc.collect()
+            
+            # Clear MPS cache if available
+            if torch.backends.mps.is_available():
+                torch.mps.empty_cache()
+            
         return all_data
     
     def is_cached(self, idx: int) -> bool:
@@ -160,6 +184,13 @@ def collate_fn(batch):
     # Batch the PyG Data objects
     # PyG's Batch.from_data_list will handle all attributes automatically
     batched_data = torch_geometric.data.Batch.from_data_list(flattened_batch)
+    
+    # Clear the flattened batch to help with memory management
+    flattened_batch.clear()
+    
+    # Clear MPS cache if available
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
     
     return batched_data
 

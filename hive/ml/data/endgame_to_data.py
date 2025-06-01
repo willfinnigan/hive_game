@@ -1,6 +1,8 @@
 from pathlib import Path
 import torch
 from torch_geometric.data import Data
+import gc
+import os
 
 from typing import List
 from hive.game_engine.game_functions import get_winner
@@ -83,61 +85,89 @@ def process_endgame(game: Game,
     # Generate a list of games, and the move that was player (which will come from the game one step head)
     all_data = []
 
+    # Calculate total length
     total_length = 0
     tmp_game = game
     while tmp_game.move is not None:
         total_length += 1
         tmp_game = tmp_game.parent
-
+    
+    # Clean up temporary game reference
+    del tmp_game
+    
     steps_to_stop_at = total_length - skip_initial
 
-    # add terminal state (no moves)
+    # Process terminal state (no moves)
     graph = Graph(game)
     data = graph_to_pytorch(graph)
-    if include_moves == True:
+    
+    if include_moves:
         # No move was made in the terminal state
         data = add_move_y_labels(data, graph, None)
-    if include_value == True:
-        # The value is liklihood of winning for the current player
+    if include_value:
+        # The value is likelihood of winning for the current player
         data = add_value_y_label(data, game, winner, 0, total_length, value_discount)
 
     all_data.append(data)  # append to the data list
+    
+    # Clean up graph after use
+    del graph
+    
+    # Force MPS/GPU memory cleanup if using MPS
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 
-    # walk through game states
+    # Walk through game states
     steps = 0
-    while game.move is not None:
-        '''
-        game.parent is the game state before the move was made
-        game.move is the move that made
-        game is the resulting game state after the move
-        '''
-
-        # create a data object, and values for training
-        # We create a data object for the game state before the move was made
-        graph = Graph(game.parent)
+    current_game = game  # Use a separate variable to avoid modifying the original reference
+    
+    while current_game.move is not None:
+        # Create a data object for the game state before the move was made
+        parent_game = current_game.parent
+        graph = Graph(parent_game)
         data = graph_to_pytorch(graph)
 
-        # add labels
-        if include_moves == True:
+        # Add labels
+        if include_moves:
             # Which move was made in this game state for the current player
-            move = game.move  # this is the move that was made *from* game.parent *to* game
+            move = current_game.move  # this is the move that was made *from* parent_game *to* current_game
             data = add_move_y_labels(data, graph, move)
-        if include_value == True:
-            # The value is liklihood of winning for the current player
-            data = add_value_y_label(data, game.parent, winner, steps, total_length, value_discount)
+        if include_value:
+            # The value is likelihood of winning for the current player
+            data = add_value_y_label(data, parent_game, winner, steps, total_length, value_discount)
 
         all_data.append(data)  # append to the data list
-        game = game.parent  # move to the previous game state
+        
+        # Clean up graph after use
+        del graph
+        
+        # Move to the previous game state
+        next_parent = parent_game.parent
+        current_game = parent_game
+        
         steps += 1
+
+        # Periodically force garbage collection (less frequent to reduce overhead)
+        if steps % 20 == 0:
+            gc.collect()
+            if torch.backends.mps.is_available():
+                torch.mps.empty_cache()
 
         if steps >= steps_to_stop_at:
             break
 
-    # Clean up
-    del graph
+    # Clean up remaining references
+    del current_game
     del game
+    
+    # Force final garbage collection
+    gc.collect()
+    
+    # Force MPS/GPU memory cleanup if using MPS
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 
-    # return data for training
+    # Return data for training
     return all_data
 
 
