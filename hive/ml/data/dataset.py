@@ -33,14 +33,12 @@ class HiveLazyGameDataset(Dataset):
         max_skip_attempts: int = 100,
         cache_path: Optional[str] = None,
         use_cache: bool = True,
-        log_frequency: int = 50  # How often to log memory usage (in number of games)
     ):
         super().__init__(None, transform, pre_transform)
         self.filepath = filepath
         self.batch_size = batch_size
         self.max_skip_attempts = max_skip_attempts
         self.use_cache = use_cache
-        self.log_frequency = log_frequency
         
         # Initialize the data loader
         self.loader = GameDataLoader(filepath, batch_size=batch_size)
@@ -49,6 +47,8 @@ class HiveLazyGameDataset(Dataset):
         # Keep track of valid indices
         self.valid_indices = set()
         self.invalid_indices = set()
+
+        self.gc_freq = 100 # Frequency of garbage collection and memory checks
         
         # Initialize cache if enabled
         if self.use_cache:
@@ -93,7 +93,7 @@ class HiveLazyGameDataset(Dataset):
         del game  # Clear the game object to free memory
         
         # Force garbage collection periodically (less frequent to reduce overhead)
-        if idx % self.log_frequency == 0:
+        if idx % self.gc_freq == 0:
             # Log memory usage
             process = psutil.Process(os.getpid())
             mem_info = process.memory_info()

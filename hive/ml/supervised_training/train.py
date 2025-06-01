@@ -33,7 +33,8 @@ mlflow.set_tracking_uri(f"file://{mlflow_dir}")
 
 
 def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
-          save_path=None, save_every=5, experiment_name="hive_training"):
+          save_path=None, save_every=5, experiment_name="hive_training",
+          start_epoch=0, train_history=None):
     """
     Train the model on the dataset with MLflow tracking.
 
@@ -47,6 +48,8 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
         save_path: Path to save model checkpoints (optional)
         save_every: Save checkpoint every N epochs
         experiment_name: MLflow experiment name
+        start_epoch: Epoch to start from (for resuming training)
+        train_history: Dictionary containing training history (for resuming)
     """
     # Set MLflow experiment
     mlflow.set_experiment(experiment_name)
@@ -84,7 +87,6 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
         train_dataset = HiveLazyGameDataset(
             filepath,
             batch_size=batch_size,
-            log_frequency=50  # Log every 50 games to reduce overhead
         )
 
         train_loader = DataLoader(
@@ -96,10 +98,10 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
             persistent_workers=False,  # Don't keep workers alive between epochs
             collate_fn=collate_fn)
 
-        # Training metrics
-        train_losses = []
-        train_value_losses = []
-        train_value_accuracies = []
+        # Training metrics - initialize from history if provided
+        train_losses = train_history['train_losses'] if train_history else []
+        train_value_losses = train_history['train_value_losses'] if train_history else []
+        train_value_accuracies = train_history['train_value_accuracies'] if train_history else []
 
         model.train()
 
@@ -108,8 +110,8 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
         batch_times = []
         last_batch_time = time.time()
 
-        # Training loop over epochs
-        for epoch in range(num_epochs):
+        # Training loop over epochs (starting from start_epoch)
+        for epoch in range(start_epoch, start_epoch + num_epochs):
             epoch_start_time = time.time()
             epoch_loss = 0.0
             epoch_value_loss = 0.0
@@ -451,11 +453,18 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
 
 
 if __name__ == "__main__":
+    # Configuration variables - modify these to change training parameters
+    # Path to checkpoint file to resume training from (set to None to start from scratch)
+    CHECKPOINT_PATH = None  # Example: "hive/ml/supervised_training/checkpoints/20250101_120000/hive_model_epoch_10_20250101_120000.pt"
+    
+    # Training parameters
+    TOTAL_EPOCHS = 50  # Total number of epochs to train for
+    BATCH_SIZE = 128   # Batch size for training
+    SAVE_EVERY = 1     # Save checkpoint every N epochs
+    
     # Set up file paths and parameters
     folder = Path(__file__).parents[3]
     filepath = f"{folder}/game_strings/combined.txt"
-    batch_size = 128
-    num_epochs = 50  # Set number of epochs
     
     # Import memory monitoring
     import psutil
@@ -473,41 +482,66 @@ if __name__ == "__main__":
     # Get model
     model = hive_gatv2
 
-
-
     # Set up optimizer with weight decay for regularization
     optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
 
     this_dir = Path(__file__).parent
     checkpoint_dir = this_dir / "checkpoints"
 
-    # Create save directory if it doesn't exist
-    import os
+    # Variables for checkpoint loading
+    start_epoch = 0
+    train_history = None
+    
+    # Check if resuming from checkpoint
+    if CHECKPOINT_PATH:
+        if os.path.exists(CHECKPOINT_PATH):
+            print(f"Loading checkpoint from {CHECKPOINT_PATH}")
+            checkpoint = torch.load(CHECKPOINT_PATH)
+            
+            # Load model state
+            model.load_state_dict(checkpoint['model_state_dict'])
+            
+            # Load optimizer state
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            
+            # Get the starting epoch (to continue from)
+            start_epoch = checkpoint['epoch']
+            
+            # Load training history
+            train_history = {
+                'train_losses': checkpoint['train_losses'],
+                'train_value_losses': checkpoint['train_value_losses'],
+                'train_value_accuracies': checkpoint['train_value_accuracies']
+            }
+            
+            print(f"Resuming from epoch {start_epoch}")
+        else:
+            print(f"Warning: Checkpoint file {CHECKPOINT_PATH} not found. Starting from scratch.")
 
-    # create a run name based on datetime
+    # Create save directory if it doesn't exist
     run_name = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = checkpoint_dir / run_name
     os.makedirs(save_path, exist_ok=True)
 
-    # Set MLflow tracking URI (optional - defaults to local ./mlruns)
-    # mlflow.set_tracking_uri("file:///path/to/mlruns")  # Local file system
-    # mlflow.set_tracking_uri("http://localhost:5000")   # MLflow server
-
-    # Start training with MLflow tracking
-    # Reduce number of workers to prevent memory issues
-    num_workers = 4  # Reduced from 16
-    print(f"Using {num_workers} DataLoader workers (reduced from 16)")
+    # Calculate remaining epochs
+    remaining_epochs = TOTAL_EPOCHS - start_epoch
+    if remaining_epochs <= 0:
+        print(f"Warning: Starting epoch ({start_epoch}) >= total epochs ({TOTAL_EPOCHS})")
+        print("Setting remaining epochs to 1")
+        remaining_epochs = 1
     
     metrics = train(
         filepath=filepath,
-        batch_size=batch_size,
+        batch_size=BATCH_SIZE,
         model=model,
         device=device,
         optimizer=optimizer,
-        num_epochs=num_epochs,
+        num_epochs=remaining_epochs,
         save_path=save_path,
-        save_every=1,
-        experiment_name="hive_model_training"
+        save_every=SAVE_EVERY,
+        experiment_name="hive_model_training",
+        start_epoch=start_epoch,
+        train_history=train_history
     )
 
     print(f"\nTraining completed!")
