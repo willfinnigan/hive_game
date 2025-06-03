@@ -11,7 +11,7 @@ from hive.game_engine.moves import Move, NoMove, get_possible_moves
 from hive.game_engine.pieces import QUEEN, PILLBUG
 
 
-@lru_cache(maxsize=500)
+@lru_cache(maxsize=50)
 def get_players_possible_moves_or_placements(colour: Colour, game: Game) -> List[Union[Move|NoMove]]:
 
     if _must_play_queen(colour, game):

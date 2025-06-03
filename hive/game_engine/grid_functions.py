@@ -6,7 +6,7 @@ from hive.game_engine.errors import BreaksConnectionError, InvalidLocationError,
 from hive.game_engine.game_state import Location, Grid, Colour, Piece, GridLocation
 
 
-@lru_cache(maxsize=5000)
+@lru_cache(maxsize=1000)
 def positions_around_location(loc: Location) -> Tuple[Location, Location, Location, Location, Location, Location]:
     """
     Returns the position around a location in a clockwise order
@@ -22,7 +22,7 @@ def positions_around_location(loc: Location) -> Tuple[Location, Location, Locati
     return ((q - 1, r - 1), (q + 1, r - 1), (q + 2, r), (q + 1, r + 1), (q - 1, r + 1), (q - 2, r))
 
 
-@lru_cache(maxsize=5000)
+@lru_cache(maxsize=1000)
 def pieces_around_location(grid: Grid, loc: Location) -> Tuple[Location, ...]:
     """Return all positions around a location that contain pieces"""
     # Pre-compute the positions once
@@ -32,7 +32,7 @@ def pieces_around_location(grid: Grid, loc: Location) -> Tuple[Location, ...]:
     # This is faster than a generator expression when we need all results
     return tuple(pos for pos in positions if pos in grid)
 
-@lru_cache(maxsize=5000)
+@lru_cache(maxsize=1000)
 def is_position_connected(grid: Grid, loc: Location, positions_to_ignore: Tuple[Location] = None) -> bool:
     """Check if a position is connected to at least one piece in the grid"""
     piece_locations = pieces_around_location(grid, loc)
@@ -62,7 +62,7 @@ def get_empty_locations(grid: Grid):
     return empty
 
 
-@lru_cache(maxsize=5000)
+@lru_cache(maxsize=1000)
 def one_move_away(grid: Grid, loc: Location, positions_to_ignore: Tuple[Location] = None) -> List[Location]:
     """Return all connected empty locations 1 move away from location
     But must be able to slide to that location without breaking connection
@@ -94,7 +94,7 @@ def one_move_away(grid: Grid, loc: Location, positions_to_ignore: Tuple[Location
         connected_spaces.append(space)
     return connected_spaces
 
-@lru_cache(maxsize=10000)
+@lru_cache(maxsize=1000)
 def beetle_one_move_away(grid: Grid, loc: Location, positions_to_ignore: Tuple[Location] = None) -> List[Location]:
     """Return all connected locations 1 move away from location for a beetle
     Beetles can move on top of other pieces, so we check differently than other pieces
@@ -116,7 +116,7 @@ def beetle_one_move_away(grid: Grid, loc: Location, positions_to_ignore: Tuple[L
     return connected_spaces
 
 
-@lru_cache(maxsize=10000)  # Cache the results for better performance
+@lru_cache(maxsize=1000)  # Cache the results for better performance
 def check_can_slide_to(grid: Grid, loc: Location, to_loc: Location, positions_to_ignore: Tuple[Location] = None) -> bool:
     """Check if a piece can slide to a location"""
     #  eg (5,3) -> (6,2) is not possible because of pieces at (4,2) and (7, 3)

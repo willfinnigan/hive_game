@@ -16,7 +16,7 @@ def check_queen_timely_placement(game: Game, colour: Colour, moves_to_queen=4):
     if not game.queens.get(colour, False):
         raise NoQueenError(f"No Queen found for {colour}")
 
-@lru_cache(maxsize=1000)
+@lru_cache(maxsize=50)
 def get_queen_location(grid: Grid, colour: Colour) -> Optional[Location]:
     """Get the location of the queen for a given colour."""
 

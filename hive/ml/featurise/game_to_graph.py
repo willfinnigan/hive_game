@@ -133,7 +133,7 @@ class Graph():
             # forward
             self.edges.append((from_node, to_node))
             self.edge_features.append([0, 0, 0, 1, 0, 1])
-            self.edge_moves.append(move)  # store the move for this edge
+            self.edge_moves.append(hash(move))  # store the move for this edge
 
             # retro
             self.edges.append((to_node, from_node))

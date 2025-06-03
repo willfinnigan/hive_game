@@ -109,7 +109,7 @@ def process_endgame(game: Game,
         data = add_value_y_label(data, game, winner, 0, total_length, value_discount)
 
     all_data.append(data)  # append to the data list
-    
+
     # Clean up graph after use
     del graph
     
@@ -144,7 +144,20 @@ def process_endgame(game: Game,
         # Move to the previous game state
         next_parent = parent_game.parent
         current_game = parent_game
-        
+
+        # Clean up the current game reference
+        try:
+            del parent_game.move
+        except:
+            pass
+
+        try:
+            del parent_game.grid
+        except:
+            pass
+
+        del parent_game
+
         steps += 1
 
         # Periodically force garbage collection (less frequent to reduce overhead)
