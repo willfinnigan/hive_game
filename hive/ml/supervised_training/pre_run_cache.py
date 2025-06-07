@@ -108,5 +108,5 @@ if __name__ == "__main__":
     # This is required for multiprocessing with 'spawn' method
     freeze_support()
 
-    main(workers=16, batch_size=32, max_batches=None)
+    main(workers=8, batch_size=16, max_batches=None)
 

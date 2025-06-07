@@ -39,18 +39,17 @@ def create_move_labels(graph: Graph, expert_move, game: Game):
 
     # are all the labels 0?
     # if move is Pass, length of moves should be 0
-    if isinstance(expert_move, NoMove) == True and len(graph.edge_moves) != 0:
-        # print()
-        # print(f"Expert move is a pass but there are {len(graph.edge_moves)} moves available")
-        # print(dict(game.grid))
-        # print()
-        pass
+    if isinstance(expert_move, NoMove) is True:
+        if len(graph.edge_moves) != 0:
+            print()
+            print(f"Expert move is a pass but there are {len(graph.edge_moves)} moves available")
+            print(dict(game.grid))
+            print()
     elif all(label == 0 for label in labels):
-        # print()
-        # print(f'No valid moves found for expert move: {expert_move} in {len(graph.edge_moves)} available moves')
-        # print(dict(game.grid))
-        # print()
-        pass
+        print()
+        print(f'No valid moves found for expert move: {expert_move} in {len(graph.edge_moves)} available moves')
+        print(dict(game.grid))
+        print()
         # raise ValueError("All labels are 0, no valid moves found.")
 
     return labels
