@@ -70,7 +70,12 @@ class Move:
 
 
     def __hash__(self):
-        return hash(str(self._move_string()))
+        return hash((self.current_location,
+                     self.current_stack_idx,
+                     self.new_location,
+                     self.new_stack_idx,
+                     self.colour,
+                     self.piece.name))
 
 
 @dataclass
@@ -89,7 +94,7 @@ class NoMove:
         return f"Pass ({self.colour})"
     
     def __hash__(self):
-        return hash(str(self))
+        return hash(self.colour)
 
     def __eq__(self, other):
         if not isinstance(other, NoMove):

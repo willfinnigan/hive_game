@@ -29,15 +29,20 @@ def create_move_labels(graph: Graph, expert_move):
     labels = []
 
     for mv in graph.edge_moves:
-        if mv == expert_move:
+        if mv == hash(expert_move):
             labels.append(1)
         else:
             labels.append(0)
 
+    if expert_move is None:
+        return labels
+
     # are all the labels 0?
-    if all(label == 0 for label in labels):
-        pass
-        # print(f'No valid moves found for expert move: {expert_move}')
+    # if move is Pass, length of moves should be 0
+    if isinstance(expert_move, NoMove):
+        assert len(graph.edge_moves) == 0, f"Expert move is a pass but there are {len(graph.edge_moves)} moves available"
+    elif all(label == 0 for label in labels):
+        print(f'No valid moves found for expert move: {expert_move} in {len(graph.edge_moves)} available moves')
         # raise ValueError("All labels are 0, no valid moves found.")
 
     return labels
@@ -75,7 +80,7 @@ def add_value_y_label(data: Data, game: Game, winner, step: int, total_length: i
 
 
 def process_endgame(game: Game,
-                    include_moves=False,
+                    include_moves=True,
                     include_value=True,
                     value_discount=0.5,
                     skip_initial=8) -> List[Data]:

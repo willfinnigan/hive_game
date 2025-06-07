@@ -43,7 +43,7 @@ def game_to_text(game, highlight_piece_at=None, show_moves=None):
     if min_q % 2 == 1:
         min_q -= 1
 
-    game_text = ""
+    game_text = "\n"
     for r in range(min_r, max_r+1):
         row = f""
         if r % 2 != 0:
