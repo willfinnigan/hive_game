@@ -37,14 +37,19 @@ def main(workers=0, max_batches=None, batch_size=32):
     
     logging.info(f"Creating dataset from {filepath}")
     
-    # Create dataset with use_cache=True to enable SQLite caching
+    # Create dataset with use_cache=True to enable sharded caching
     train_dataset = HiveLazyGameDataset(filepath, batch_size=batch_size, use_cache=True)
+    
+    # Configure write batching for better performance with multiprocessing
+    if hasattr(train_dataset.cache, 'set_batch_size'):
+        train_dataset.cache.set_batch_size(20)  # Batch 20 writes before flushing
+        logging.info(f"Configured cache write batching: 20 writes per flush")
     
     # Configure DataLoader with user-specified settings
     train_loader = DataLoader(
         dataset=train_dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=True,
         num_workers=workers,  # Use command-line argument
         collate_fn=collate_fn
     )
@@ -53,7 +58,8 @@ def main(workers=0, max_batches=None, batch_size=32):
     total_batches = len(train_loader)
     batches_to_process = total_batches if max_batches is None else min(max_batches, total_batches)
     
-    logging.info(f"Total dataset size: {len(train_dataset)} items")
+    logging.info(f"Total dataset size: {len(train_dataset)} data items")
+    logging.info(f"Cache using {train_dataset.cache.num_shards} shards")
     if max_batches is not None:
         logging.info(f"Limited to processing {batches_to_process} batches (max ~{batches_to_process * batch_size} items)")
     else:
@@ -71,15 +77,32 @@ def main(workers=0, max_batches=None, batch_size=32):
             # Process completed successfully
             progress_bar.set_description(f"Processed batch {batch_idx+1}/{batches_to_process}")
             
-            # Report cache size periodically
+            # Report cache size and flush periodically
             if batch_idx % 10 == 0 and batch_idx > 0:
+                # Flush any pending writes to ensure data is persisted
+                if hasattr(train_dataset.cache, 'flush_all'):
+                    train_dataset.cache.flush_all()
+                
                 cache_size = train_dataset.cache.get_size()
                 elapsed = time.time() - start_time
                 items_per_sec = (batch_idx * batch_size) / elapsed
+                
+                # Report batching statistics if available
+                if hasattr(train_dataset.cache, 'get_stats'):
+                    stats = train_dataset.cache.get_stats()
+                    logging.info(f"Batch {batch_idx}: {items_per_sec:.1f} items/sec, "
+                               f"cache: {cache_size} entries, "
+                               f"flushes: {stats.get('flushes', 0)}, "
+                               f"batched writes: {stats.get('batched_writes', 0)}")
             
             # Clean up memory
             del batch_data
             gc.collect()
+        
+        # Final flush to ensure all data is persisted
+        if hasattr(train_dataset.cache, 'flush_all'):
+            logging.info("Flushing all pending writes...")
+            train_dataset.cache.flush_all()
         
         # Final stats
         elapsed = time.time() - start_time
@@ -92,6 +115,12 @@ def main(workers=0, max_batches=None, batch_size=32):
         logging.info(f"Processing speed: {items_per_sec:.1f} items/sec")
         logging.info(f"Cache now contains {cache_size} entries")
         logging.info(f"Cache location: {train_dataset.cache.cache_path}")
+        
+        # Report final batching statistics
+        if hasattr(train_dataset.cache, 'get_stats'):
+            stats = train_dataset.cache.get_stats()
+            logging.info(f"Write batching stats - Total flushes: {stats.get('flushes', 0)}, "
+                        f"Batched writes: {stats.get('batched_writes', 0)}")
         
     except KeyboardInterrupt:
         elapsed = time.time() - start_time
@@ -108,5 +137,5 @@ if __name__ == "__main__":
     # This is required for multiprocessing with 'spawn' method
     freeze_support()
 
-    main(workers=8, batch_size=16, max_batches=None)
+    main(workers=4, batch_size=4, max_batches=None)
 

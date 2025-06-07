@@ -13,7 +13,7 @@ from hive.ml.data.endgame_to_data import process_endgame
 from hive.ml.featurise.game_to_graph import Graph
 from hive.ml.featurise.graph_to_pyg import graph_to_pytorch
 from hive.trajectory.game_dataloader import GameDataLoader
-from hive.ml.data.cache import SQLiteCache
+from hive.ml.data.cache import SQLiteCache, ShardedPyTorchCache
 
 
 class HiveLazyGameDataset(Dataset):
@@ -21,11 +21,24 @@ class HiveLazyGameDataset(Dataset):
     PyTorch Geometric Dataset for Hive games that loads data lazily.
     This is more memory-efficient for large datasets.
     
-    With caching enabled, processed data is stored in an SQLite database
-    for faster access in subsequent runs.
+    With caching enabled, processed data is stored using either a high-performance
+    sharded PyTorch cache (default) or SQLite database for faster access in
+    subsequent runs.
     
     This dataset is designed to work with PyTorch's DataLoader multiprocessing
     by properly handling file handles during pickling.
+    
+    Args:
+        filepath: Path to the game data file
+        transform: Optional transform to apply to data
+        pre_transform: Optional pre-transform to apply to data
+        batch_size: Batch size for internal game loading
+        max_skip_attempts: Maximum attempts to skip invalid games
+        cache_path: Custom cache path (auto-generated if None)
+        use_cache: Whether to enable caching
+        cache_type: Type of cache to use ("sharded" or "sqlite")
+        num_shards: Number of shards for sharded cache (None for auto-calculation)
+        migrate_from_sqlite: Whether to migrate from existing SQLite cache
     """
     def __init__(
         self,
@@ -36,12 +49,18 @@ class HiveLazyGameDataset(Dataset):
         max_skip_attempts: int = 100,
         cache_path: Optional[str] = None,
         use_cache: bool = True,
+        cache_type: str = "sharded",  # "sharded" or "sqlite"
+        num_shards: Optional[int] = None,
+        migrate_from_sqlite: bool = False,
     ):
         super().__init__(None, transform, pre_transform)
         self.filepath = filepath
         self.batch_size = batch_size
         self.max_skip_attempts = max_skip_attempts
         self.use_cache = use_cache
+        self.cache_type = cache_type
+        self.num_shards = num_shards
+        self.migrate_from_sqlite = migrate_from_sqlite
         
         # Initialize the data loader
         self.loader = GameDataLoader(filepath, batch_size=batch_size)
@@ -59,9 +78,33 @@ class HiveLazyGameDataset(Dataset):
                 # Create cache in the same directory as the data file
                 data_dir = os.path.dirname(os.path.abspath(filepath))
                 filename = os.path.basename(filepath)
-                cache_path = os.path.join(data_dir, f"{filename}.cache.db")
-            self.cache = SQLiteCache(cache_path)
-            print(f"Using SQLite cache at: {cache_path}")
+                if cache_type == "sharded":
+                    cache_path = os.path.join(data_dir, f"{filename}.cache")
+                else:
+                    cache_path = os.path.join(data_dir, f"{filename}.cache.db")
+            
+            # Initialize the appropriate cache type
+            if cache_type == "sharded":
+                self.cache = ShardedPyTorchCache(
+                    cache_path,
+                    num_shards=num_shards,
+                    source_filepath=filepath
+                )
+                actual_shards = self.cache.num_shards
+                print(f"Using ShardedPyTorchCache with {actual_shards} shards at: {cache_path}")
+                
+                # Migrate from SQLite if requested and SQLite cache exists
+                if migrate_from_sqlite:
+                    sqlite_cache_path = cache_path.replace(".cache", ".cache.db")
+                    if os.path.exists(sqlite_cache_path):
+                        print(f"Migrating from SQLite cache: {sqlite_cache_path}")
+                        self.cache.migrate_from_sqlite(sqlite_cache_path)
+                        
+            elif cache_type == "sqlite":
+                self.cache = SQLiteCache(cache_path)
+                print(f"Using SQLiteCache at: {cache_path}")
+            else:
+                raise ValueError(f"Unknown cache_type: {cache_type}. Must be 'sharded' or 'sqlite'")
 
     
     def __getstate__(self):
