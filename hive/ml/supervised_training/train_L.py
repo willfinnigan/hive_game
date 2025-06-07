@@ -15,8 +15,8 @@ from hive.ml.model.models import create_hive_gatv2_gnn
 if __name__ == "__main__":
     # --- Configuration ---
     TOTAL_EPOCHS = 10
-    BATCH_SIZE = 64
-    NUM_WORKERS = 6
+    BATCH_SIZE = 32
+    NUM_WORKERS = 2
     LEARNING_RATE = 0.01
 
     folder = Path(__file__).parents[3]

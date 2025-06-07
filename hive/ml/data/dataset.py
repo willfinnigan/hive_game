@@ -169,38 +169,47 @@ class HiveLazyGameDataset(Dataset):
 
 def collate_fn(batch):
     """
-    Custom collate function for batching PyG Data objects.
+    Custom collate function for batching PyTorch Geometric Data objects.
+    
+    This function takes a batch of items from the dataset (each item is a list of
+    PyG Data objects representing game states) and combines them into a single
+    batched Data object suitable for training.
     
     Args:
-        batch: A list of lists of PyG Data objects, where each Data object contains:
-            - Standard PyG attributes (x, edge_index, edge_attr, etc.)
-            - move_labels: Tensor of move labels
-            - winner: Tensor indicating if current player won
+        batch: List of items from the dataset, where each item is either:
+            - A list of PyG Data objects (game states)
+            - None (if the dataset item failed to load)
             
     Returns:
-        A Batch object with all attributes properly batched
+        torch_geometric.data.Batch: Batched PyG Data object with all game states
+        combined, or None if no valid data was found
     """
-    # Flatten the batch if needed (since each item might be a list of Data objects)
+    # Collect all valid Data objects from the batch
     flattened_batch = []
+    
     for item in batch:
         if item is None:
+            # Skip failed dataset items
             continue
+            
         if isinstance(item, list):
+            # Extend with all Data objects from this game
             flattened_batch.extend(item)
         else:
-            raise ValueError(f"Expected a list of Data objects, got {type(item)}")
+            raise ValueError(f"Expected list of Data objects or None, got {type(item)}")
     
+    # Return None if no valid data found
     if len(flattened_batch) == 0:
         return None
     
-    # Batch the PyG Data objects
-    # PyG's Batch.from_data_list will handle all attributes automatically
-    batched_data = torch_geometric.data.Batch.from_data_list(flattened_batch)
+    # Create batched PyG Data object
+    try:
+        batched_data = torch_geometric.data.Batch.from_data_list(flattened_batch)
+    except Exception as e:
+        raise RuntimeError(f"Failed to create batch from {len(flattened_batch)} Data objects: {e}")
     
-    # Clear the flattened batch to help with memory management
+    # Memory cleanup
     flattened_batch.clear()
-    
-    # Clear MPS cache if available
     if torch.backends.mps.is_available():
         torch.mps.empty_cache()
     

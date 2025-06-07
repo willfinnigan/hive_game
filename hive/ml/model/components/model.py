@@ -86,10 +86,11 @@ class HiveLightningModel(L.LightningModule):
                  learning_rate=0.01,
                  weight_decay=5e-4):
         super().__init__()
-        self.save_hyperparameters()   # Save hyperparameters like learning_rate to the checkpoint
+        # Save hyperparameters but ignore the model to avoid the warning
+        self.save_hyperparameters(ignore=['model'])
         self.model = model
 
-    def forward(self, batch):
+    def forward(self, batch):     
         return self.model(batch)
 
     def training_step(self, batch, batch_idx):
@@ -105,8 +106,10 @@ class HiveLightningModel(L.LightningModule):
 
         # Log metrics using self.log(). Lightning handles the backend (e.g., MLflow)
         # `on_step=True` logs it per batch, `on_epoch=True` aggregates and logs at epoch end.
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log('train_accuracy', acc, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        # Include batch_size to avoid Lightning warnings about ambiguous collections
+        batch_size = batch.value.size(0)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
+        self.log('train_accuracy', acc, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
 
         return loss
 
