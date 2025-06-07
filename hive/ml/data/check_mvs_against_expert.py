@@ -7,6 +7,8 @@ from hive.render.to_text import game_to_text
 from hive.trajectory.game_dataloader import GameDataLoader
 
 
+"""This is a quick script to check that the game engine is correctly identifying the possible moves for each player in a game."""
+
 if __name__ == '__main__':
     filepath = f"{Path(__file__).parents[3]}/game_strings/combined.txt"
     batch_size = 100

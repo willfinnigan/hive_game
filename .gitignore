@@ -97,3 +97,10 @@ instance/
 
 # Pytest
 pytest.ini
+
+# mlruns
+mlruns/
+
+# Game strings except for the .txt files
+game_strings/*
+!game_strings/*.txt

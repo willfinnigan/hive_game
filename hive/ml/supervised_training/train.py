@@ -19,10 +19,11 @@ from hive.ml.data.dataset import HiveLazyGameDataset, collate_fn
 from hive.trajectory.game_dataloader import GameDataLoader
 from hive.ml.model.models import hive_gatv2
 
-# fix for mac
-import multiprocessing
 
-multiprocessing.set_start_method('fork', force=True)
+import multiprocessing
+from multiprocessing import freeze_support
+
+# We'll set the multiprocessing start method in the main block
 
 folder = Path(__file__).parents[3]
 
@@ -476,6 +477,17 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
 
 
 if __name__ == "__main__":
+    # This is required for multiprocessing with 'spawn' method
+    freeze_support()
+    
+    # Set multiprocessing start method based on platform
+    if os.name == 'posix' and 'darwin' in os.uname().sysname.lower():
+        # On macOS, use 'spawn' which is safer but has more overhead
+        multiprocessing.set_start_method('spawn', force=True)
+    else:
+        # On other platforms, 'fork' is fine
+        multiprocessing.set_start_method('fork', force=True)
+    
     # Configuration variables - modify these to change training parameters
     # Path to checkpoint file to resume training from (set to None to start from scratch)
     CHECKPOINT_PATH = None  # Example: "hive/ml/supervised_training/checkpoints/20250101_120000/hive_model_epoch_10_20250101_120000.pt"

@@ -26,7 +26,7 @@ def graph_to_pytorch(graph: Graph) -> Data:
     # add edge idx and features
     for (i_node, j_node), edge_feats in zip(graph.edges, graph.edge_features):
         i_node_idx = node_ids.index(i_node.node_id)
-        j_node_idx = node_ids.index(i_node.node_id)
+        j_node_idx = node_ids.index(j_node.node_id)
         edge_indices.append([i_node_idx, j_node_idx])
         edge_features.append(edge_feats)
 

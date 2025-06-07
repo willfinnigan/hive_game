@@ -23,6 +23,9 @@ class HiveLazyGameDataset(Dataset):
     
     With caching enabled, processed data is stored in an SQLite database
     for faster access in subsequent runs.
+    
+    This dataset is designed to work with PyTorch's DataLoader multiprocessing
+    by properly handling file handles during pickling.
     """
     def __init__(
         self,
@@ -61,6 +64,34 @@ class HiveLazyGameDataset(Dataset):
             print(f"Using SQLite cache at: {cache_path}")
 
     
+    def __getstate__(self):
+        """
+        Custom method to prepare the object for pickling.
+        This is called when the object is being pickled (e.g., for multiprocessing).
+        
+        We need to close the file handle in the loader before pickling.
+        """
+        state = self.__dict__.copy()
+        
+        # Close the file handle in the loader if it exists
+        if hasattr(self, 'loader') and self.loader is not None:
+            self.loader.close()
+            
+        return state
+    
+    def __setstate__(self, state):
+        """
+        Custom method to restore the object after unpickling.
+        This is called when the object is being unpickled in a worker process.
+        
+        We need to restore the file handle in the loader after unpickling.
+        """
+        self.__dict__.update(state)
+        
+        # Ensure the loader's file handle is reopened
+        if hasattr(self, 'loader') and self.loader is not None:
+            self.loader._ensure_file_open()
+    
     def len(self):
         return self.length
     
@@ -74,6 +105,9 @@ class HiveLazyGameDataset(Dataset):
             cached_data = self.cache.get(cache_key)
             if cached_data is not None:
                 return cached_data
+        
+        # Ensure the loader's file handle is open
+        self.loader._ensure_file_open()
         
         # If not in cache or caching disabled, load and process
         game = self.loader.get_game(idx)
@@ -91,7 +125,6 @@ class HiveLazyGameDataset(Dataset):
 
         self.clean_up(game)
         
-            
         return all_data
     
     def clean_up(self, game: Game) -> None:
