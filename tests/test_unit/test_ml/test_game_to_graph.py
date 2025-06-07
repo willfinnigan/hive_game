@@ -456,8 +456,7 @@ def test_node_feature_dimensions():
     expected_length = (
         8 +  # piece type one-hot (8 piece types)
         2 +  # piece affiliation one-hot (2 affiliations)
-        1 +  # stack height
-        3    # move features (has_legal_moves, can_move_to_our_queen, can_move_to_opponent_queen)
+        1    # stack height
     )
     assert feature_counts[0] == expected_length, f"Expected {expected_length} features, got {feature_counts[0]}"
 

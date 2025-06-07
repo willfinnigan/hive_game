@@ -17,6 +17,8 @@ class Graph():
     def __init__(self, game: Game):
 
         self.current_colour = game.current_turn
+        # Add missing current_turn attribute - this was causing the AttributeError
+        self.current_turn = game.current_turn
 
         self.nodes: List[Node] = []
         self.nodes_by_location: Dict[LocID, Node] = {}

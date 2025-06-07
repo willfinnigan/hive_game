@@ -32,8 +32,8 @@ if __name__ == "__main__":
     )
 
     # --- 2. Set up Model ---
-    model = create_hive_gatv2_gnn(hidden_dim=64,
-                                  num_layers=2,
+    model = create_hive_gatv2_gnn(hidden_dim=16,
+                                  num_layers=1,
                                   heads=1,
                                   dropout=0.05,
                                   residual=False,
