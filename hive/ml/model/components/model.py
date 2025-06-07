@@ -1,8 +1,10 @@
 from enum import Enum
 
 import torch
-from torch import nn
+from torch import nn, optim
 from torch_geometric.data import Data
+import torch.nn.functional as F
+import lightning as L
 from typing import Literal, Dict, Callable, Optional
 
 from torch_geometric.nn import global_mean_pool, global_max_pool, global_add_pool
@@ -17,6 +19,8 @@ PoolingFunction = Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
 POOLING_METHODS: Dict[PoolingType, PoolingFunction] = {'add': global_add_pool,
                                                         'mean': global_mean_pool,
                                                         'max': global_max_pool}
+
+
 
 class HiveGNN(nn.Module):
     """
@@ -71,3 +75,44 @@ class HiveGNN(nn.Module):
             batch_vector = torch.zeros(node_embeddings.size(0), dtype=torch.long, device=node_embeddings.device)
 
         return batch_vector
+
+
+
+
+class HiveLightningModel(L.LightningModule):
+
+    def __init__(self,
+                 model,
+                 learning_rate=0.01,
+                 weight_decay=5e-4):
+        super().__init__()
+        self.save_hyperparameters()   # Save hyperparameters like learning_rate to the checkpoint
+        self.model = model
+
+    def forward(self, batch):
+        return self.model(batch)
+
+    def training_step(self, batch, batch_idx):
+        outputs = self(batch)
+
+        # Calculate loss
+        value_preds = outputs["value"]
+        value_targets = batch.value
+        loss = F.mse_loss(value_preds, value_targets)
+
+        # Calculate accuracy for logging
+        acc = ((value_preds > 0) == (value_targets > 0)).float().mean()
+
+        # Log metrics using self.log(). Lightning handles the backend (e.g., MLflow)
+        # `on_step=True` logs it per batch, `on_epoch=True` aggregates and logs at epoch end.
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('train_accuracy', acc, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        return loss
+
+    def configure_optimizers(self):
+        return optim.Adam(self.parameters(),
+                          lr=self.hparams.learning_rate,
+                          weight_decay=self.hparams.weight_decay)
+
+

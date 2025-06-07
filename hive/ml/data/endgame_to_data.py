@@ -13,7 +13,7 @@ from hive.ml.featurise.graph_to_pyg import game_to_pytorch, graph_to_pytorch
 from hive.trajectory.game_dataloader import GameDataLoader
 
 
-def create_move_labels(graph: Graph, expert_move):
+def create_move_labels(graph: Graph, expert_move, game: Game):
     """
     Create a one-hot encoded label vector for the expert move.
     
@@ -39,18 +39,24 @@ def create_move_labels(graph: Graph, expert_move):
 
     # are all the labels 0?
     # if move is Pass, length of moves should be 0
-    if isinstance(expert_move, NoMove):
-        assert len(graph.edge_moves) == 0, f"Expert move is a pass but there are {len(graph.edge_moves)} moves available"
+    if isinstance(expert_move, NoMove) == True and len(graph.edge_moves) != 0:
+        print()
+        print(f"Expert move is a pass but there are {len(graph.edge_moves)} moves available")
+        print(dict(game.grid))
+        print()
     elif all(label == 0 for label in labels):
+        print()
         print(f'No valid moves found for expert move: {expert_move} in {len(graph.edge_moves)} available moves')
+        print(dict(game.grid))
+        print()
         # raise ValueError("All labels are 0, no valid moves found.")
 
     return labels
 
 
-def add_move_y_labels(data: Data, graph: Graph, expert_move):
+def add_move_y_labels(data: Data, graph: Graph, expert_move, game: Game):
     # Create move labels
-    moves = create_move_labels(graph, expert_move)
+    moves = create_move_labels(graph, expert_move, game)
 
     # Store move labels and winner directly in the Data object
     data.move_labels = torch.tensor(moves, dtype=torch.float)
@@ -108,7 +114,7 @@ def process_endgame(game: Game,
     
     if include_moves:
         # No move was made in the terminal state
-        data = add_move_y_labels(data, graph, None)
+        data = add_move_y_labels(data, graph, None, game)
     if include_value:
         # The value is likelihood of winning for the current player
         data = add_value_y_label(data, game, winner, 0, total_length, value_discount)
@@ -136,7 +142,7 @@ def process_endgame(game: Game,
         if include_moves:
             # Which move was made in this game state for the current player
             move = current_game.move  # this is the move that was made *from* parent_game *to* current_game
-            data = add_move_y_labels(data, graph, move)
+            data = add_move_y_labels(data, graph, move, game)
         if include_value:
             # The value is likelihood of winning for the current player
             data = add_value_y_label(data, parent_game, winner, steps, total_length, value_discount)

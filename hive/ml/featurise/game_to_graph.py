@@ -68,11 +68,10 @@ class Graph():
                     self.nodes.append(node)
                     self.nodes_by_location[node.loc_id] = node
 
-        # FIXED: Get all possible moves and create empty nodes for ALL move targets
-        # that don't already exist, regardless of stack_idx
+
         opponent_colour = opposite_colour(self.current_colour)
-        current_moves = get_players_moves(self.current_colour, game)
-        opponent_moves = get_players_moves(opponent_colour, game)
+        current_moves = get_players_possible_moves_or_placements(self.current_colour, game)
+        opponent_moves = get_players_possible_moves_or_placements(opponent_colour, game)
 
         move_locations_w_stack_idx = set()
         for move in current_moves + opponent_moves:

@@ -26,7 +26,6 @@ from multiprocessing import freeze_support
 # We'll set the multiprocessing start method in the main block
 
 folder = Path(__file__).parents[3]
-
 mlflow_dir = f"{folder}/mlruns"
 
 print(mlflow_dir)
@@ -58,7 +57,7 @@ def create_train_loader(dataset, batch_size, num_workers=2, prefetch_factor=2):
 
 def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
           save_path=None, save_every=5, experiment_name="hive_training",
-          start_epoch=0, train_history=None):
+          start_epoch=0, train_history=None, num_workers=10, prefetch_factor=1):
     """
     Train the model on the dataset with MLflow tracking.
 
@@ -114,8 +113,8 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
         train_loader = create_train_loader(
             train_dataset,
             batch_size=batch_size,
-            num_workers=4,
-            prefetch_factor=1
+            num_workers=num_workers,
+            prefetch_factor=prefetch_factor
         )
 
         # Training metrics - initialize from history if provided
@@ -335,8 +334,8 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
             train_loader = create_train_loader(
                 train_dataset,
                 batch_size=batch_size,
-                num_workers=4,
-                prefetch_factor=1
+                num_workers=num_workers,
+                prefetch_factor=prefetch_factor
             )
 
             # Log epoch metrics to MLflow
@@ -411,69 +410,6 @@ def train(filepath, batch_size, model, device, optimizer, num_epochs=10,
                 registered_model_name=f"hive_model_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             )
 
-        # Create and log training curves plot
-        try:
-            import matplotlib.pyplot as plt
-
-            fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
-
-            epochs_range = range(1, len(train_losses) + 1)
-
-            # Loss curve
-            ax1.plot(epochs_range, train_losses, 'b-', label='Training Loss')
-            ax1.set_title('Training Loss')
-            ax1.set_xlabel('Epoch')
-            ax1.set_ylabel('Loss')
-            ax1.legend()
-            ax1.grid(True)
-
-            # Value loss curve
-            ax2.plot(epochs_range, train_value_losses, 'r-', label='Value Loss')
-            ax2.set_title('Value Loss')
-            ax2.set_xlabel('Epoch')
-            ax2.set_ylabel('Loss')
-            ax2.legend()
-            ax2.grid(True)
-
-            # Value accuracy curve
-            ax3.plot(epochs_range, train_value_accuracies, 'g-', label='Value Accuracy')
-            ax3.set_title('Value Accuracy')
-            ax3.set_xlabel('Epoch')
-            ax3.set_ylabel('Accuracy')
-            ax3.legend()
-            ax3.grid(True)
-
-            # Combined view
-            ax4.plot(epochs_range, train_losses, 'b-', label='Total Loss', alpha=0.7)
-            ax4_twin = ax4.twinx()
-            ax4_twin.plot(epochs_range, train_value_accuracies, 'g-', label='Value Accuracy', alpha=0.7)
-            ax4.set_title('Loss and Accuracy')
-            ax4.set_xlabel('Epoch')
-            ax4.set_ylabel('Loss', color='b')
-            ax4_twin.set_ylabel('Accuracy', color='g')
-            ax4.grid(True)
-
-            plt.tight_layout()
-
-            # Save and log the plot
-            if save_path:
-                plot_path = f"{save_path}/training_curves_{timestamp}.png"
-                plt.savefig(plot_path, dpi=300, bbox_inches='tight')
-                mlflow.log_artifact(plot_path, "plots")
-
-            plt.close()
-
-        except ImportError:
-            print("Matplotlib not available - skipping training curves plot")
-        except Exception as e:
-            print(f"Error creating training curves plot: {e}")
-
-        return {
-            'train_losses': train_losses,
-            'train_value_losses': train_value_losses,
-            'train_value_accuracies': train_value_accuracies,
-            'mlflow_run_id': mlflow.active_run().info.run_id
-        }
 
 
 if __name__ == "__main__":
@@ -493,8 +429,8 @@ if __name__ == "__main__":
     CHECKPOINT_PATH = None  # Example: "hive/ml/supervised_training/checkpoints/20250101_120000/hive_model_epoch_10_20250101_120000.pt"
     
     # Training parameters
-    TOTAL_EPOCHS = 50  # Total number of epochs to train for
-    BATCH_SIZE = 128   # Batch size for training
+    TOTAL_EPOCHS = 10  # Total number of epochs to train for
+    BATCH_SIZE = 64   # Batch size for training
     SAVE_EVERY = 1     # Save checkpoint every N epochs
     
     # Set up file paths and parameters
@@ -518,7 +454,7 @@ if __name__ == "__main__":
     model = hive_gatv2
 
     # Set up optimizer with weight decay for regularization
-    optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+    optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 
     this_dir = Path(__file__).parent
     checkpoint_dir = this_dir / "checkpoints"
@@ -543,7 +479,7 @@ if __name__ == "__main__":
             
             # Load optimizer state
             # First create a new optimizer with the model parameters on the correct device
-            optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-5)
+            optimizer = optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-5)
             
             # Then load the optimizer state
             # This is a workaround for the device mismatch issue
@@ -594,7 +530,9 @@ if __name__ == "__main__":
         save_every=SAVE_EVERY,
         experiment_name="hive_model_training",
         start_epoch=start_epoch,
-        train_history=train_history
+        train_history=train_history,
+        num_workers=6,
+        prefetch_factor=1
     )
 
     print(f"\nTraining completed!")
