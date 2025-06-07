@@ -51,7 +51,7 @@ class HiveLazyGameDataset(Dataset):
         self.valid_indices = set()
         self.invalid_indices = set()
 
-        self.gc_freq = 100 # Frequency of garbage collection and memory checks
+        self.gc_freq = 100
         
         # Initialize cache if enabled
         if self.use_cache:
@@ -164,30 +164,7 @@ class HiveLazyGameDataset(Dataset):
         if self.use_cache:
             self.cache.clear()
             print("Cache cleared")
-    
-    def prefetch_to_cache(self, indices: List[int]) -> None:
-        """
-        Prefetch and cache multiple games by their indices.
-        
-        This is useful for preloading commonly accessed games into the cache
-        before training starts.
-        
-        Args:
-            indices: List of game indices to prefetch
-        """
-        if not self.use_cache:
-            print("Caching is disabled, cannot prefetch")
-            return
-            
-        print(f"Prefetching {len(indices)} games to cache...")
-        for i, idx in enumerate(indices):
-            if not self.is_cached(idx):
-                self.get(idx)
-            
-            if (i + 1) % 10 == 0:
-                print(f"Prefetched {i + 1}/{len(indices)} games")
-        
-        print(f"Prefetching complete. Cache now contains {self.cache.get_size()} entries.")
+
 
 
 def collate_fn(batch):

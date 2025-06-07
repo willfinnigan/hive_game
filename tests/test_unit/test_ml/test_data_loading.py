@@ -108,14 +108,6 @@ def test_clear_cache(dataset, mock_cache):
     dataset.clear_cache()
     mock_cache.clear.assert_called_once()
 
-def test_prefetch_to_cache(dataset, mock_cache):
-    """Test prefetch_to_cache() method"""
-    with patch('hive.ml.data.dataset.HiveLazyGameDataset.get') as mock_get:
-        mock_get.return_value = ["data"]
-        indices = [0, 1, 2]
-        dataset.prefetch_to_cache(indices)
-        assert mock_get.call_count == len(indices)
-
 def test_get_invalid_index(dataset, mock_loader):
     """Test get() with invalid index"""
     mock_loader.get_game.return_value = None

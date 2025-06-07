@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple, Dict
 
 from hive.game_engine.game_state import BLACK, WHITE, Game, Piece, initial_game
 from hive.game_engine.grid_functions import get_placeable_locations, positions_around_location
@@ -7,6 +7,8 @@ from hive.game_engine.player_functions import get_players_possible_moves_or_plac
 from hive.ml.featurise.node_features import NodeFeatureMethod
 from hive.ml.featurise.node_features import all_node_feature_methods
 
+LocID = Tuple[Tuple[int, int], int]  # (location, stack_idx)
+
 class Graph():
     """An intermediate representation on the way to a pytorch geometric graph."""
 
@@ -14,10 +16,9 @@ class Graph():
 
         self.game = game
         self.current_colour = game.current_turn
-        
-        self.nodes = []
-        self.node_dict = {}
-        self.nodes_by_location = {}
+
+        self.nodes: List[Node] = []
+        self.nodes_by_location: Dict[LocID, Node] = {}
 
         self.edges = []
         self.edge_features = []
@@ -42,17 +43,17 @@ class Graph():
         if len(self.game.grid) == 0:
             node = Node((0, 0), 0, None, is_current_turn=self.game.current_turn == self.current_colour)
             self.nodes.append(node)
-            self.node_dict[node.node_id] = node
             self.nodes_by_location[node.loc_id] = node
             return
 
         locations = set(self.game.grid.keys())
 
-        # expand locations to include all locations 1 space away
+        # expand grid locations to include all locations 1 space away
         for loc in self.game.grid.keys():
             for a_loc in positions_around_location(loc):
                 locations.add(a_loc)
 
+        # add nodes for each location in the grid
         for loc in locations:
             stack = self.game.grid.get(loc, ())
 
@@ -60,21 +61,21 @@ class Graph():
             if len(stack) == 0:
                 node = Node(loc, 0, None)
                 self.nodes.append(node)
-                self.node_dict[node.node_id] = node
                 self.nodes_by_location[node.loc_id] = node
             else:
                 # create a node for each piece in the stack
                 for i, piece in enumerate(stack):
                     node = Node(loc, i, piece)
                     self.nodes.append(node)
-                    self.node_dict[node.node_id] = node
                     self.nodes_by_location[node.loc_id] = node
-
 
         # add an empty node above every stack where there is a piece that can move there
         opponent_colour = BLACK if self.current_colour == WHITE else WHITE
-        current_moves = get_players_possible_moves_or_placements(self.current_colour, self.game)
-        opponent_moves = get_players_possible_moves_or_placements(opponent_colour, self.game)
+        current_moves = get_players_moves(self.current_colour, self.game)
+        opponent_moves = get_players_moves(opponent_colour, self.game)
+
+        print(current_moves)
+        print(opponent_moves)
 
         move_locations_w_stack_idx = set()
         for move in current_moves+opponent_moves:
@@ -89,7 +90,6 @@ class Graph():
         for loc, stack_idx in move_locations_w_stack_idx:
             node = Node(loc, stack_idx, None)
             self.nodes.append(node)
-            self.node_dict[node.node_id] = node
             self.nodes_by_location[node.loc_id] = node
 
 
@@ -106,7 +106,7 @@ class Graph():
                 # create a node for each unplayed piece
                 node = Node(None, 0, piece, is_current_turn=self.game.current_turn == self.current_colour)
                 self.nodes.append(node)
-                self.node_dict[node.node_id] = node
+                self.nodes_by_location[node.loc_id] = node
                 created.add(piece.name)
 
     def _create_move_edges(self):
@@ -123,7 +123,7 @@ class Graph():
             current_stack_idx = move.current_stack_idx
             if current_stack_idx is None:
                 current_stack_idx = 0
-            from_node = self.node_dict.get((move.current_location, current_stack_idx, move.piece))
+            from_node = self.nodes_by_location.get((move.current_location, current_stack_idx))
             to_node = self.nodes_by_location.get((move.new_location, move.new_stack_idx))
             if from_node is None:
                 raise ValueError(f"Trying to create a move edge from {(move.current_location, current_stack_idx, move.piece)}, but its not in the graph \n nodes by location: {self.nodes_by_location}")
@@ -148,7 +148,7 @@ class Graph():
             current_stack_idx = move.current_stack_idx
             if current_stack_idx is None:
                 current_stack_idx = 0
-            from_node = self.node_dict.get((move.current_location, current_stack_idx, move.piece))
+            from_node = self.nodes_by_location.get((move.current_location, current_stack_idx))
             to_node = self.nodes_by_location.get((move.new_location, move.new_stack_idx))
             if from_node is None:
                 raise ValueError(f"Trying to create a move edge from {(move.current_location, current_stack_idx)}, but its not in the graph \n nodes by location: {self.nodes_by_location}")
@@ -167,12 +167,12 @@ class Graph():
 
 
 class Node():
-    def __init__(self, location: tuple, stack_idx: int, piece: Optional[Piece], is_current_turn: bool=False):
+    def __init__(self, location: Tuple[int, int], stack_idx: int, piece: Optional[Piece], is_current_turn: bool=False):
         self.location = location
         self.stack_idx = stack_idx
         self.piece = piece
         self.node_id = (location, stack_idx, piece)
-        self.loc_id = (location, stack_idx)
+        self.loc_id: LocID = (location, stack_idx)
         self.is_current_turn = is_current_turn
         self.node_features = []
         self.edges = []
@@ -182,9 +182,8 @@ class Node():
         self._add_adjacent_edges(graph)
         self._add_stack_edges(graph)
 
-    def featurise(self, graph: Graph, methods: List[NodeFeatureMethod]) -> List[float|int]:
+    def featurise(self, graph: Graph, methods: List[NodeFeatureMethod]):
         """Return a list of features for this node."""
-
         for method in methods:
             self.node_features.extend(method(self.piece, self.location, self.stack_idx, graph.current_colour, graph.game.grid))
 

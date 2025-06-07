@@ -18,6 +18,7 @@ def test_beetle_can_move_to_empty_adjacent_space():
 
     print(game_to_text(game))
 
+
     # Get possible moves for the beetle
     possible_moves = get_possible_moves(game.grid, (2, 0), 0)
     move_locations = [move.new_location for move in possible_moves]
@@ -126,6 +127,21 @@ def test_can_move_beetle_on_double_stack():
 
     assert len(black_moves) > 5
 
+
+def test_beetle_can_move_on_top_of_queen():
+    grid = {
+        (0, 0): (Piece(WHITE, pieces.QUEEN, 1),),
+        (2, 0): (Piece(BLACK, pieces.BEETLE, 1),),
+    }
+    game = initial_game(grid=grid)
+
+    print(game_to_text(game))
+
+    # Get possible moves for the beetle
+    black_moves = get_players_moves('BLACK', game)
+
+    # assert beetle can move on top of queen at (0, 0), 1
+    assert any(move.new_location == (0, 0) and move.new_stack_idx == 1 for move in black_moves)
 
 
 

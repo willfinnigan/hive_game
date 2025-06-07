@@ -8,7 +8,7 @@ from hive.trajectory.game_dataloader import GameDataLoader
 def test_game_dataloader():
     """Test the GameDataLoader functionality with Game objects."""
     # Path to the combined.txt file
-    filepath = os.path.join(Path(__file__).parents[1], "game_strings", "combined.txt")
+    filepath = os.path.join(Path(__file__).parents[0], "data", "BoardGameArena_Base+MLP+NoBots_20240704_110945.txt")
     
     # Create a data loader with batch size of 5
     loader = GameDataLoader(filepath, batch_size=5)
@@ -38,7 +38,7 @@ def test_game_dataloader():
 def test_game_dataloader_random_access():
     """Test the GameDataLoader random access functionality."""
     # Path to the combined.txt file
-    filepath = os.path.join(Path(__file__).parents[1], "game_strings", "combined.txt")
+    filepath = os.path.join(Path(__file__).parents[0], "data", "BoardGameArena_Base+MLP+NoBots_20240704_110945.txt")
     
     # Create a data loader
     loader = GameDataLoader(filepath, batch_size=5)

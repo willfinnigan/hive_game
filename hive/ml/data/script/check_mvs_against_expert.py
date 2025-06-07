@@ -10,7 +10,7 @@ from hive.trajectory.game_dataloader import GameDataLoader
 """This is a quick script to check that the game engine is correctly identifying the possible moves for each player in a game."""
 
 if __name__ == '__main__':
-    filepath = f"{Path(__file__).parents[3]}/game_strings/combined.txt"
+    filepath = f"{Path(__file__).parents[4]}/game_strings/combined.txt"
     batch_size = 100
     loader = GameDataLoader(filepath, batch_size=batch_size)
     total_batches = (len(loader) + batch_size - 1) // batch_size
