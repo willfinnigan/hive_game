@@ -36,12 +36,13 @@ class HiveGNN(nn.Module):
         self.pooling_type = pooling_type
 
     def forward(self, data: Data):
-        if self.conv_net is None or self.encoder is None:
-            raise ValueError("encoder and conv_net must be set before forward pass")
+        if self.conv_net is None:
+            raise ValueError("conv_net must be set before forward pass")
 
         x, edge_index, edge_attr = data.x, data.edge_index, data.edge_attr
 
         # 1. Encode node features if encoder is provided
+        # Otherwise use raw node features
         if self.encoder is not None:
             x = self.encoder(x)
 

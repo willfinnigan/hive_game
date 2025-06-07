@@ -49,36 +49,11 @@ def featurise_stack_height(piece: Optional[Piece], loc: Location, i: int, colour
     else:
         return [i+1]  # Stack height is the index of the piece in the stack
 
-def featurise_moves(piece: Optional[Piece], loc: Location, i: int, colour: Colour, grid: Grid) -> List[float|int]:
-    """Featurise moves
-    - has legal moves (0 or 1)
-    - can piece move to opponent queen (0 or 1)
-    - can piece move to our queen (0 or 1)
-    """
-    # if is not at the top of the stack, then no moves
-    # check if piece is at the top of the stack by looking at the grid
-    stack = grid.get(loc)
-    if stack is None or len(stack) == 0 or stack[-1] != piece:
-        return [0, 0, 0]
-
-    legal_moves = get_possible_moves(grid, loc, len(stack)-1)  # returns a list of locations
-    has_legal_moves = 1 if len(legal_moves) > 0 else 0
-
-    enemy_colour = opposite_colour(colour)
-    current_player_queen_loc = get_queen_location(grid, colour)
-    opponent_player_queen_loc = get_queen_location(grid, enemy_colour)
-
-    can_move_to_our_queen = 1 if current_player_queen_loc in legal_moves else 0
-    can_move_to_opponent_queen = 1 if opponent_player_queen_loc in legal_moves else 0
-
-    return [has_legal_moves, can_move_to_our_queen, can_move_to_opponent_queen]
-
 
 all_node_feature_methods = [
     featurise_piece_type,
     featurise_piece_affiliation,
     featurise_stack_height,
-    featurise_moves
 ]
 
 

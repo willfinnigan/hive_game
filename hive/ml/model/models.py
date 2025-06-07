@@ -7,37 +7,45 @@ from hive.ml.model.components.graph_nets import GATConvNet
 from hive.ml.model.components.model import HiveGNN
 from hive.ml.model.components.task_heads import MovePredictor, ValuePredictor
 
-node_feats = 14
+node_feats = 11
 edge_feats = 6
 
-encoder = SimpleNodeEncoder(in_channels=node_feats,
-                            hidden_dim=128)
+hidden_dim = 128
+num_layers = 4
+heads = 4
+dropout = 0.1
+residual = True
+batch_norm = True
 
-gatv2 = GATConvNet(in_channels=128,
-                   hidden_dim=128, 
+encoder = SimpleNodeEncoder(in_channels=node_feats,
+                            hidden_dim=hidden_dim)
+
+gatv2 = GATConvNet(in_channels=hidden_dim,
+                   hidden_dim=hidden_dim,
                    edge_dim=edge_feats, 
-                   num_layers=4, 
-                   heads=4, 
-                   dropout=0.1)
+                   num_layers=num_layers,
+                   heads=heads,
+                   dropout=dropout,
+                   residual=residual,
+                   batch_norm=False)
 
 task_heads = nn.ModuleDict({
-    "policy": MovePredictor(in_channels=128//4,
-                                    hidden_dim=128),
-    "value": ValuePredictor(in_channels=128//4,
-                                      hidden_dim=128)
+    "policy": MovePredictor(in_channels=hidden_dim//heads,
+                            hidden_dim=hidden_dim),
+    "value": ValuePredictor(in_channels=hidden_dim//heads,
+                            hidden_dim=hidden_dim)
 })
 
 value_only_head = nn.ModuleDict({
-    "value": ValuePredictor(in_channels=128//4,
-                                      hidden_dim=128)
+    "value": ValuePredictor(in_channels=hidden_dim//heads,
+                            hidden_dim=hidden_dim)
 })
-
 
 
 hive_gatv2 = HiveGNN(encoder=encoder,
                      conv_net=gatv2,
-                     task_heads=value_only_head,
-                     pooling_type="mean")
+                     task_heads=task_heads,
+                     pooling_type="add")
 
 if __name__ == "__main__":
     # Example usage
