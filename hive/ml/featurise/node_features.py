@@ -48,12 +48,20 @@ def featurise_stack_height(piece: Optional[Piece], loc: Location, i: int, colour
         return [0]
     else:
         return [i+1]  # Stack height is the index of the piece in the stack
+    
+def is_pass_node(piece: Optional[Piece], loc: Location, i: int, colour: Colour, grid: Grid) -> List[float|int]:
+    """Featurise whether the node is a pass node.  If the grid is None, then this is a pass node"""
+    if grid is None:
+        return [1]  # If grid is None, then this is a pass node
+    else:
+        return [0]
 
 
 all_node_feature_methods = [
     featurise_piece_type,
     featurise_piece_affiliation,
     featurise_stack_height,
+    is_pass_node
 ]
 
 

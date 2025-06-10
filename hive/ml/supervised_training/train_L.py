@@ -4,70 +4,62 @@ from lightning.pytorch import Trainer
 from lightning.pytorch.loggers import MLFlowLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
 
-import mlflow
-import mlflow.pytorch
+from lightning.pytorch.loggers import WandbLogger
 
-from hive.ml.model.components.model import HiveLightningModel
-from hive.ml.model.dataloader import HiveDataModule
+from hive.ml.model.dataloader import WebdatasetHiveDataModule 
+from hive.ml.model.lightning_wrapper import HiveLightningModel
 from hive.ml.model.models import create_hive_gatv2_gnn
 
 
-if __name__ == "__main__":
-    # --- Configuration ---
-    TOTAL_EPOCHS = 10
-    BATCH_SIZE = 32
-    NUM_WORKERS = 2
-    LEARNING_RATE = 0.01
+def train_hive_model(model,
+                     data_directory: str,
+                     experiment_name: str,
+                     checkpoint_dir: str,
+                     total_epochs: int,
+                     batch_size: int,
+                     num_workers: int,
+                     learning_rate: float,
+                     shuffle_buffer_size: int,
+                     project_name: str = "hive_model_training",):
+    
 
-    folder = Path(__file__).parents[3]
-    filepath = f"{folder}/game_strings/combined.txt"
-    mlflow_dir = f"{folder}/mlruns"
-    mlflow.set_tracking_uri(f"file://{mlflow_dir}")
+    os.makedirs(checkpoint_dir, exist_ok=True)
 
     # --- 1. Set up Data ---
-    data_module = HiveDataModule(
-        data_path=filepath,
-        batch_size=BATCH_SIZE,
-        num_workers=NUM_WORKERS
+    data_module = WebdatasetHiveDataModule(
+        data_dir=data_directory,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        shuffle_buffer_size=shuffle_buffer_size
     )
-
-    # --- 2. Set up Model ---
-    model = create_hive_gatv2_gnn(hidden_dim=16,
-                                  num_layers=1,
-                                  heads=1,
-                                  dropout=0.05,
-                                  residual=False,
-                                  batch_norm=False,
-                                  pool_method='add')
 
     lightning_model = HiveLightningModel(model=model,
-                                         learning_rate=LEARNING_RATE)
+                                         learning_rate=learning_rate)
 
-    # --- 3. Set up Logging & Checkpointing ---
-    # MLflow logger automatically logs metrics, hparams, and model artifacts
-    mlflow_logger = MLFlowLogger(
-        experiment_name="hive_model_training_lightning",
-        tracking_uri=f"file://{mlflow_dir}"
-    )
+    wandb_logger = WandbLogger(log_model="all",
+                               project=project_name,
+                               name=experiment_name)
 
     # Checkpoint callback to save the best model
     checkpoint_callback = ModelCheckpoint(
         monitor='train_loss_epoch',  # The metric to monitor
-        dirpath='lightning_checkpoints/',
+        dirpath=f'{checkpoint_dir}/lightning_checkpoints/',
         filename='hive-model-{epoch:02d}-{train_loss_epoch:.2f}',
-        save_top_k=1,  # Save only the best model
         mode='min',
+        save_top_k=-1,  # Save every epoch
+        every_n_epochs=1
     )
 
     # --- 4. Set up Trainer ---
-    # The Trainer automates everything
+    data_module.setup()  # self.num_train_batches attribute gets set.
     trainer = Trainer(
         accelerator="auto",  # Automatically uses GPU/MPS if available
         devices="auto",  # Automatically uses all available devices
-        max_epochs=TOTAL_EPOCHS,
-        logger=mlflow_logger,
+        max_epochs=total_epochs,
+        logger=wandb_logger,
         callbacks=[checkpoint_callback],
         gradient_clip_val=1.0,
+        limit_train_batches=data_module.num_train_batches  # for progress bar
     )
 
     # --- 5. Start Training! ---
@@ -76,4 +68,37 @@ if __name__ == "__main__":
 
     print("\nTraining completed!")
     print(f"Best model saved at: {checkpoint_callback.best_model_path}")
-    print(f"View results in MLflow UI by running: mlflow ui --backend-store-uri {mlflow_dir}")
+
+
+
+
+
+
+if __name__ == "__main__":
+
+    folder = Path(__file__).parents[3]
+
+    experiment_name="hive_model_training_lightning"
+    filepath = f"{folder}/game_strings/combined.txt"
+    data_directory = f"{filepath}.webdataset_10000_games"
+    checkpoint_dir = f"{folder}/lightning_checkpoints"
+
+    model = create_hive_gatv2_gnn(hidden_dim=8,
+                                  num_layers=1,
+                                  heads=1,
+                                  dropout=0.05,
+                                  residual=False,
+                                  batch_norm=False,
+                                  pool_method='mean')
+    
+    train_hive_model(model=model,
+                     data_directory=data_directory,
+                     checkpoint_dir=checkpoint_dir,
+                     experiment_name=experiment_name,
+                     total_epochs=10,
+                     batch_size=8,
+                     num_workers=2,
+                     learning_rate=0.01,
+                     shuffle_buffer_size=10000)
+    
+

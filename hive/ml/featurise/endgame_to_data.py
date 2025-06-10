@@ -13,7 +13,7 @@ from hive.ml.featurise.graph_to_pyg import game_to_pytorch, graph_to_pytorch
 from hive.trajectory.game_dataloader import GameDataLoader
 
 
-def create_move_labels(graph: Graph, expert_move, game: Game):
+def get_move_index(graph: Graph, expert_move, game: Game) -> int:
     """
     Create a one-hot encoded label vector for the expert move.
     
@@ -25,42 +25,44 @@ def create_move_labels(graph: Graph, expert_move, game: Game):
         A tensor of shape [num_candidate_moves] where the index 
         corresponding to the expert move is 1 and all others are 0
     """
-    # Initialize label tensor with zeros
-    labels = []
 
-    for mv in graph.edge_moves:
-        if mv == hash(expert_move):
-            labels.append(1)
-        else:
-            labels.append(0)
-
-    if expert_move is None:
-        return labels
-
-    # are all the labels 0?
-    # if move is Pass, length of moves should be 0
+    
+    # If pass, then select the first move (which is the pass edge)
     if isinstance(expert_move, NoMove) is True:
-        if len(graph.edge_moves) != 0:
+        if len(graph.edge_moves) != 1:
             print()
             print(f"Expert move is a pass but there are {len(graph.edge_moves)} moves available")
             print(dict(game.grid))
             print()
-    elif all(label == 0 for label in labels):
-        print()
-        print(f'No valid moves found for expert move: {expert_move} in {len(graph.edge_moves)} available moves')
-        print(dict(game.grid))
-        print()
-        # raise ValueError("All labels are 0, no valid moves found.")
+        return 0  # Pass is always the first move in the list
 
-    return labels
+    for i, mv in enumerate(graph.edge_moves):
+        if mv == hash(expert_move):
+            return i
+
+    print()
+    print(f'Expert move {expert_move} not found in available moves: {graph.edge_moves}')
+    print(dict(game.grid))
+    print()
+    print("Returning a -100 move which will be skipped")
+    return -100
 
 
 def add_move_y_labels(data: Data, graph: Graph, expert_move, game: Game):
-    # Create move labels
-    moves = create_move_labels(graph, expert_move, game)
+    move_index = get_move_index(graph, expert_move, game)
 
-    # Store move labels and winner directly in the Data object
-    data.move_labels = torch.tensor(moves, dtype=torch.float)
+    if move_index is not None:
+        data.policy = torch.tensor(move_index, dtype=torch.long)
+    else:
+        data.policy = torch.tensor(-100, dtype=torch.long)
+
+    num_moves = len(graph.edge_moves)
+    data.move_batch_idx = torch.full((num_moves,), fill_value=0, dtype=torch.long)
+
+    '''The magic happens in the collate function of the PyG DataLoader. 
+    When you create a batch from a list of Data objects, the DataLoader does something special for attributes 
+    that end in _idx or _index (and for the batch attribute specifically).'''
+
     return data
 
 
@@ -83,14 +85,17 @@ def add_value_y_label(data: Data, game: Game, winner, step: int, total_length: i
     # Store value label in the Data object
     data.value = torch.tensor(value, dtype=torch.float)
     data.game_progress = 1 - game_progress
+    
+    # store game step but starting from 0
+    data.step = total_length - step
+
     return data
 
 
 def process_endgame(game: Game,
                     include_moves=True,
                     include_value=True,
-                    value_discount=0.5,
-                    skip_initial=8) -> List[Data]:
+                    value_discount=1) -> List[Data]:
     """Taking a game in endgame state, return Data objects with move labels and winner information"""
     winner = get_winner(game)
 
@@ -104,30 +109,19 @@ def process_endgame(game: Game,
         total_length += 1
         tmp_game = tmp_game.parent
     
-    # Clean up temporary game reference
-    del tmp_game
-    
-    steps_to_stop_at = total_length - skip_initial
-
+    '''Not processing the terminal state because there is no move made'''
     # Process terminal state (no moves)
-    graph = Graph(game)
-    data = graph_to_pytorch(graph)
+    # graph = Graph(game)
+    # data = graph_to_pytorch(graph)
     
-    if include_moves:
-        # No move was made in the terminal state
-        data = add_move_y_labels(data, graph, None, game)
-    if include_value:
-        # The value is likelihood of winning for the current player
-        data = add_value_y_label(data, game, winner, 0, total_length, value_discount)
+    # if include_moves:
+    #     # No move was made in the terminal state
+    #     data = add_move_y_labels(data, graph, None, game)
+    # if include_value:
+    #     # The value is likelihood of winning for the current player
+    #     data = add_value_y_label(data, game, winner, 0, total_length, value_discount)
 
-    all_data.append(data)  # append to the data list
-
-    # Clean up graph after use
-    del graph
-    
-    # Force MPS/GPU memory cleanup if using MPS
-    if torch.backends.mps.is_available():
-        torch.mps.empty_cache()
+    # all_data.append(data)  # append to the data list
 
     # Walk through game states
     steps = 0
@@ -150,47 +144,14 @@ def process_endgame(game: Game,
 
         all_data.append(data)  # append to the data list
         
-        # Clean up graph after use
-        del graph
-        
+
         # Move to the previous game state
         next_parent = parent_game.parent
         current_game = parent_game
-
-        # Clean up the current game reference
-        try:
-            del parent_game.move
-        except:
-            pass
-
-        try:
-            del parent_game.grid
-        except:
-            pass
-
-        del parent_game
-
         steps += 1
 
-        # Periodically force garbage collection (less frequent to reduce overhead)
-        if steps % 20 == 0:
-            gc.collect()
-            if torch.backends.mps.is_available():
-                torch.mps.empty_cache()
-
-        if steps >= steps_to_stop_at:
-            break
-
-    # Clean up remaining references
-    del current_game
-    del game
-    
-    # Force final garbage collection
-    gc.collect()
-    
-    # Force MPS/GPU memory cleanup if using MPS
-    if torch.backends.mps.is_available():
-        torch.mps.empty_cache()
+    # remove any data objects with -100 move index
+    all_data = [data for data in all_data if data.policy.item() != -100]
 
     # Return data for training
     return all_data
@@ -211,7 +172,9 @@ if __name__ == '__main__':
     print(f"Processed {len(all_data)} data objects from the endgame")
     for i, data in enumerate(all_data):
         print(f"Data object {i}:")
-        print(f"  Move labels: {data.move_labels}")
+        print(f"  Move idx: {data.policy}")
+        print(f"  Step: {data.step}")
+        print(f"  Batch index: {data.move_batch_idx}")
         print(f"  Value: {data.value}")
         print(f"  Game progress: {data.game_progress}")
         print(f"  Number of nodes: {data.num_nodes}")

@@ -10,6 +10,9 @@ from hive.ml.featurise.node_features import all_node_feature_methods
 
 LocID = Tuple[Tuple[int, int], int]  # (location, stack_idx)
 
+# Edge features are defined as follows:
+# [adjacent, above, below, forward, retro, is_current_turn]
+
 
 class Graph():
     """An intermediate representation on the way to a pytorch geometric graph."""
@@ -27,15 +30,28 @@ class Graph():
         self.edge_features = []
         self.edge_moves = []  # store the moves for each edge
 
+        self._create_pass_node()  # creates pass node with a move edge to itself
         self._create_nodes_in_play(game)
         self._create_nodes_unplaced(game)
         self._create_move_edges(game)
+        
 
         for node in self.nodes:
             node.featurise(self, game, all_node_feature_methods)
-            node.create_edges(self, game)
-            self.edges += node.edges
-            self.edge_features += node.edge_features
+            edges, edge_features = node.create_edges(self, game)
+            self.edges += edges
+            self.edge_features += edge_features
+
+    def _create_pass_node(self):
+        node = Node(None, 0, None, is_current_turn=self.current_turn == self.current_colour)
+        self.nodes.append(node)
+        self.nodes_by_location[node.loc_id] = node
+
+        # this edge will be added along with the other edges later
+        self.edges.append((node, node))
+        self.edge_features.append([0, 0, 0, 1, 0, 1])  # add edge feature for pass node
+        self.edge_moves.append(hash(NoMove(colour=self.current_colour,)))  # add the hash of NoMove so we have correct number of edges
+        
 
     def _create_nodes_in_play(self, game):
         """Create nodes from the grid."""
@@ -180,12 +196,14 @@ class Node():
         self.loc_id: LocID = (location, stack_idx)
         self.is_current_turn = is_current_turn
         self.node_features = []
-        self.edges = []
-        self.edge_features = []
+
 
     def create_edges(self, graph: Graph, game: Game):
-        self._add_adjacent_edges(graph, game)
-        self._add_stack_edges(graph, game)
+        (adj_edges, adj_edge_features) = self._add_adjacent_edges(graph, game)
+        (stack_edges, stack_edge_features) = self._add_stack_edges(graph, game)
+        edges = adj_edges + stack_edges
+        edge_features = adj_edge_features + stack_edge_features
+        return edges, edge_features
 
     def featurise(self, graph: Graph, game, methods: List[NodeFeatureMethod]):
         """Return a list of features for this node."""
@@ -206,12 +224,13 @@ class Node():
 
     def _add_adjacent_edges(self, graph: Graph, game):
 
+        edges, edge_features = [], []
+
         # if node has no location, no adjacent edges
         if self.location is None:
-            return
+            return [], []
 
         # adjacent edges only with nodes at the same stack idx
-
         for location in positions_around_location(self.location):
             # need to make an edge to every location around - just a case of getting if the height is 0 or 1
             stack = game.grid.get(location, ())
@@ -221,14 +240,18 @@ class Node():
 
             node = graph.nodes_by_location.get((location, self.stack_idx))
             if node is not None:
-                self.edges.append((self, node))
-                self.edge_features.append([1, 0, 0, 0, 0, 0])  # adjacent edge
+                edges.append((self, node))
+                edge_features.append([1, 0, 0, 0, 0, 0])  # adjacent edge
+        
+        return (edges, edge_features)
 
     def _add_stack_edges(self, graph: Graph, game: Game):
 
+        edges, edge_features = [], []
+
         # if stack_idx is -1 or 0
         if self.stack_idx <= 0:
-            return
+            return [], []
 
         # get the stack at this nodes location
         stack = game.grid.get(self.location, None)
@@ -243,13 +266,15 @@ class Node():
             if above_node is None:
                 raise ValueError(
                     f"Node {self.node_id} has no above node in the graph (stack height={len(stack)}) - but one was expected.")
-            self.edges.append((self, above_node))
-            self.edge_features.append([0, 1, 0, 0, 0, 0])  # above edge
+            edges.append((self, above_node))
+            edge_features.append([0, 1, 0, 0, 0, 0])  # above edge
 
         # if there is a piece below this piece add an edge to it
         if self.stack_idx >= 1:  # if stack height is 2 then there must be a piece below
             below_node = graph.nodes_by_location.get((self.location, self.stack_idx - 1))
             if below_node is None:
                 raise ValueError(f"Node {self.node_id} has no below node in the graph - but one was expected")
-            self.edges.append((self, below_node))
-            self.edge_features.append([0, 0, 1, 0, 0, 0])  # below edge
+            edges.append((self, below_node))
+            edge_features.append([0, 0, 1, 0, 0, 0])  # below edge
+    
+        return (edges, edge_features)

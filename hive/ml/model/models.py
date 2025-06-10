@@ -8,7 +8,7 @@ from hive.ml.model.components.model import HiveGNN, PoolingType
 from hive.ml.model.components.task_heads import MovePredictor, ValuePredictor
 
 
-NODE_FEATS = 11
+NODE_FEATS = 12
 EDGE_FEATS = 6
 hidden_dim = 64
 num_layers = 2

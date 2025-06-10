@@ -6,8 +6,8 @@ import torch
 from unittest.mock import MagicMock, patch
 from typing import List, Optional
 
-from hive.ml.data.dataset import HiveLazyGameDataset, collate_fn
-from hive.ml.data.cache import SQLiteCache
+from hive.ml.data.old_dataset import HiveLazyGameDataset, collate_fn
+from hive.ml.data.old_cache import SQLiteCache
 from hive.game_engine.game_state import Game
 from torch_geometric.data import Data
 
