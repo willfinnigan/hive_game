@@ -87,6 +87,7 @@ class NumMobilePiecesPredictor(TaskHead):
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim // 2, 1),
+            nn.ReLU()  # ensure output is >= 0
             
         )
 
