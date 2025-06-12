@@ -82,7 +82,7 @@ class NumMobilePiecesPredictor(TaskHead):
     def __init__(self, in_channels, hidden_dim, dropout=0.1):
         super().__init__(in_channels, hidden_dim, dropout)
 
-        self.value_head = nn.Sequential(
+        self.mobile_pieces_head = nn.Sequential(
             nn.Linear(in_channels, hidden_dim // 2),
             nn.ReLU(),
             nn.Dropout(dropout),
