@@ -60,9 +60,9 @@ def train_hive_model(model,
         devices="auto",  # Automatically uses all available devices
         max_epochs=total_epochs,
         #logger=wandb_logger,
-        log_every_n_steps=25,
+        log_every_n_steps=200,
         callbacks=[checkpoint_callback],
-        gradient_clip_val=2.0,
+        gradient_clip_val=1.0,
         limit_train_batches=data_module.num_train_batches  # for progress bar
     )
 
@@ -87,24 +87,25 @@ if __name__ == "__main__":
     data_directory = f"{filepath}.webdataset_100_games"
     checkpoint_dir = f"{folder}/lightning_checkpoints"
 
-    model = create_hive_gatv2_gnn(hidden_dim=128,
-                                  num_layers=3,
+    model = create_hive_gatv2_gnn(hidden_dim=256,
+                                  num_layers=2,
                                   heads=4,
                                   dropout=0.05,
                                   residual=False,
                                   batch_norm=False,
-                                  task_heads=["value"],
-                                  pool_method='mean')
+                                  task_heads=["value", "policy"],
+                                  pool_method='add')
     
     train_hive_model(model=model,
                      data_directory=data_directory,
                      checkpoint_dir=checkpoint_dir,
                      experiment_name=experiment_name,
-                     total_epochs=100,
-                     batch_size=128,
+                     total_epochs=200,
+                     batch_size=256,
                      num_workers=1,
                      learning_rate=0.001,
                      shuffle_buffer_size=10,
-                     task_weights={"value": 1},)
+                     task_weights={"value": 1,
+                                   "policy": 1},)
     
 

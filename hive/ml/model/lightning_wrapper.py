@@ -44,7 +44,7 @@ class HiveLightningModel(L.LightningModule):
             filtered_preds = predictions[mask]
             filtered_targets = targets[mask]
 
-            loss = F.mse_loss(filtered_preds, filtered_targets)
+            loss = F.smooth_l1_loss(filtered_preds, filtered_targets)
             acc = ((filtered_preds > 0) == (filtered_targets > 0)).float().mean()
 
         # Log metrics
