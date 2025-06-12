@@ -56,10 +56,10 @@ class HiveLightningModel(L.LightningModule):
         # Log metrics
         on_step = (phase == 'train')
         self.log(f'{phase}_value_loss', loss,
-                on_step=on_step, on_epoch=True, batch_size=batch_size, log_every_n_steps=50)
+                on_step=on_step, on_epoch=True, batch_size=batch_size)
         self.log(f'{phase}_value_directional_acc', acc,
-                on_step=on_step, on_epoch=True, prog_bar=True, batch_size=batch_size, log_every_n_steps=50)
-        self.log(f'{phase}_valid_sample_count', mask.sum().float(), on_step=True, log_every_n_steps=50)
+                on_step=on_step, on_epoch=True, prog_bar=True, batch_size=batch_size)
+        self.log(f'{phase}_valid_sample_count', mask.sum().float(), on_step=True)
         
         return loss
 
@@ -68,7 +68,7 @@ class HiveLightningModel(L.LightningModule):
         loss = F.mse_loss(predictions, targets)
         
         self.log(f'{phase}_mobile_pieces_loss', loss, 
-                on_step=(phase == 'train'), on_epoch=True, batch_size=batch.value.size(0), log_every_n_steps=50)
+                on_step=(phase == 'train'), on_epoch=True, batch_size=batch.value.size(0))
         
         return loss
 
@@ -99,10 +99,10 @@ class HiveLightningModel(L.LightningModule):
         
         # Log metrics
         on_step = (phase == 'train')
-        self.log(f'{phase}_policy_loss', loss, on_step=on_step, on_epoch=True, prog_bar=True, batch_size=targets.size(0), log_every_n_steps=50)
-        self.log(f'{phase}_top_1_acc', top_1_acc, on_step=on_step, on_epoch=True, prog_bar=True, batch_size=targets.size(0), log_every_n_steps=50)
-        self.log(f'{phase}_top_5_acc', top_5_acc, on_step=on_step, on_epoch=True, batch_size=targets.size(0), log_every_n_steps=50)
-        self.log(f'{phase}_top_10_acc', top_10_acc, on_step=on_step, on_epoch=True, batch_size=targets.size(0), log_every_n_steps=50)
+        self.log(f'{phase}_policy_loss', loss, on_step=on_step, on_epoch=True, prog_bar=True, batch_size=targets.size(0))
+        self.log(f'{phase}_top_1_acc', top_1_acc, on_step=on_step, on_epoch=True, prog_bar=True, batch_size=targets.size(0))
+        self.log(f'{phase}_top_5_acc', top_5_acc, on_step=on_step, on_epoch=True, batch_size=targets.size(0))
+        self.log(f'{phase}_top_10_acc', top_10_acc, on_step=on_step, on_epoch=True, batch_size=targets.size(0))
         
         return loss
 
@@ -133,7 +133,7 @@ class HiveLightningModel(L.LightningModule):
 
 
         # Log combined loss
-        self.log(f'{phase}_loss', total_loss, on_step=(phase == 'train'), on_epoch=True, prog_bar=True, logger=True, batch_size=batch.value.size(0), log_every_n_steps=50)
+        self.log(f'{phase}_loss', total_loss, on_step=(phase == 'train'), on_epoch=True, prog_bar=True, logger=True, batch_size=batch.value.size(0))
 
         return total_loss
 
@@ -150,7 +150,7 @@ class HiveLightningModel(L.LightningModule):
         step_time = time.time() - start_time
         
         # Log timing
-        self.log('train_step_time', step_time, on_step=True, on_epoch=False, prog_bar=False, logger=True, batch_size=batch.value.size(0), log_every_n_steps=50)
+        self.log('train_step_time', step_time, on_step=True, on_epoch=False, prog_bar=False, logger=True, batch_size=batch.value.size(0))
 
         return loss
 

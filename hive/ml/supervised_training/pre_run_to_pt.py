@@ -139,13 +139,13 @@ def create_webdataset(filepath, output_dir: Path = None, max_games: int = None, 
 if __name__ == '__main__':
     freeze_support()
 
-    MAX_GAMES_TO_PROCESS = 1000
+    MAX_GAMES_TO_PROCESS = 100
     # MAX_GAMES_TO_PROCESS = None  # <--- OR UNCOMMENT THIS LINE FOR A FULL RUN
 
     FILEPATH = Path(__file__).parents[3] / 'game_strings' / 'combined.txt'
     # Use a smaller number of processes if you have fewer cores
     NUM_PROCESSES = None
-    TOTAL_CHUNKS = 10  # Number of chunks to split the dataset into
+    TOTAL_CHUNKS = 1  # Number of chunks to split the dataset into
 
     create_webdataset(FILEPATH, max_games=MAX_GAMES_TO_PROCESS,
                       num_processes=NUM_PROCESSES, total_chunks=TOTAL_CHUNKS)

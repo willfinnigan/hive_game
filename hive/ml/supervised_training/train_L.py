@@ -38,9 +38,9 @@ def train_hive_model(model,
                                          learning_rate=learning_rate,
                                          task_weights=task_weights)
 
-    wandb_logger = WandbLogger(log_model="all",
-                               project=project_name,
-                               name=experiment_name)
+    # wandb_logger = WandbLogger(log_model="all",
+    #                            project=project_name,
+    #                            name=experiment_name)
 
     # Checkpoint callback to save the best model
     checkpoint_callback = ModelCheckpoint(
@@ -59,9 +59,10 @@ def train_hive_model(model,
         accelerator="auto",  # Automatically uses GPU/MPS if available
         devices="auto",  # Automatically uses all available devices
         max_epochs=total_epochs,
-        logger=wandb_logger,
+        #logger=wandb_logger,
+        log_every_n_steps=25,
         callbacks=[checkpoint_callback],
-        gradient_clip_val=1.0,
+        gradient_clip_val=2.0,
         limit_train_batches=data_module.num_train_batches  # for progress bar
     )
 
@@ -83,28 +84,27 @@ if __name__ == "__main__":
 
     experiment_name="hive_model_training_lightning"
     filepath = f"{folder}/game_strings/combined.txt"
-    data_directory = f"{filepath}.webdataset_1000_games"
+    data_directory = f"{filepath}.webdataset_100_games"
     checkpoint_dir = f"{folder}/lightning_checkpoints"
 
-    model = create_hive_gatv2_gnn(hidden_dim=8,
-                                  num_layers=2,
-                                  heads=1,
+    model = create_hive_gatv2_gnn(hidden_dim=128,
+                                  num_layers=3,
+                                  heads=4,
                                   dropout=0.05,
                                   residual=False,
                                   batch_norm=False,
-                                  task_heads=["value", "mobile_pieces"],
+                                  task_heads=["value"],
                                   pool_method='mean')
     
     train_hive_model(model=model,
                      data_directory=data_directory,
                      checkpoint_dir=checkpoint_dir,
                      experiment_name=experiment_name,
-                     total_epochs=10,
-                     batch_size=64,
-                     num_workers=4,
-                     learning_rate=0.01,
-                     shuffle_buffer_size=10000,
-                     task_weights={"value": 1, 
-                                   "mobile_pieces": 1},)
+                     total_epochs=100,
+                     batch_size=128,
+                     num_workers=1,
+                     learning_rate=0.001,
+                     shuffle_buffer_size=10,
+                     task_weights={"value": 1},)
     
 
