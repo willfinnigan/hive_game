@@ -8,6 +8,7 @@ from typing import List
 from hive.game_engine.game_functions import get_winner
 from hive.game_engine.game_state import Game
 from hive.game_engine.moves import NoMove
+from hive.game_engine.player_functions import get_players_possible_moves_or_placements
 from hive.ml.featurise.game_to_graph import Graph
 from hive.ml.featurise.graph_to_pyg import game_to_pytorch, graph_to_pytorch
 from hive.trajectory.game_dataloader import GameDataLoader
@@ -59,6 +60,9 @@ def add_move_y_labels(data: Data, graph: Graph, expert_move, game: Game):
     num_moves = len(graph.edge_moves)
     data.move_batch_idx = torch.full((num_moves,), fill_value=0, dtype=torch.long)
 
+    # can now drop data.edge_moves as it is not needed anymore
+    data.edge_moves = None
+
     '''The magic happens in the collate function of the PyG DataLoader. 
     When you create a batch from a list of Data objects, the DataLoader does something special for attributes 
     that end in _idx or _index (and for the batch attribute specifically).'''
@@ -91,10 +95,41 @@ def add_value_y_label(data: Data, game: Game, winner, step: int, total_length: i
 
     return data
 
+def add_mobile_pieces_count(data: Data, game: Game, graph: Graph):
+    """Get the number of mobile pieces for the current player"""
+
+    moves = get_players_possible_moves_or_placements(game.current_turn, game)
+
+    # only count moves that are not placements, and only count 1 move per piece
+    seen_pieces = set()
+    count = 0
+    for move in moves:
+        if isinstance(move, NoMove):
+            continue
+
+        if move.current_location is not None and move.piece.name not in seen_pieces:
+            seen_pieces.add(move.piece.name)
+            count += 1
+    
+    data.mobile_pieces = torch.tensor(count, dtype=torch.float)
+    return data
+
+
+
+def add_auxilary_labels(data: Data, game: Game, graph: Graph):
+    """Add auxiliary labels to the Data object
+    I mostly want to use these for debugging and analysis, 
+    can the GNN predict simple things effectively?
+    """
+    data = add_mobile_pieces_count(data, game, graph)
+    # First, does edge move go next to enemy queen?
+    return data
+
 
 def process_endgame(game: Game,
                     include_moves=True,
                     include_value=True,
+                    include_auxiliary=True,
                     value_discount=1) -> List[Data]:
     """Taking a game in endgame state, return Data objects with move labels and winner information"""
     winner = get_winner(game)
@@ -141,6 +176,10 @@ def process_endgame(game: Game,
         if include_value:
             # The value is likelihood of winning for the current player
             data = add_value_y_label(data, parent_game, winner, steps, total_length, value_discount)
+        
+        if include_auxiliary:
+            # Add auxiliary labels
+            data = add_auxilary_labels(data, parent_game, graph)
 
         all_data.append(data)  # append to the data list
         
@@ -173,6 +212,7 @@ if __name__ == '__main__':
     for i, data in enumerate(all_data):
         print(f"Data object {i}:")
         print(f"  Move idx: {data.policy}")
+        print(f"  Mobile piece count: {data.mobile_piece_count}")
         print(f"  Step: {data.step}")
         print(f"  Batch index: {data.move_batch_idx}")
         print(f"  Value: {data.value}")
@@ -180,4 +220,15 @@ if __name__ == '__main__':
         print(f"  Number of nodes: {data.num_nodes}")
         print(f"  Edge index shape: {data.edge_index.shape}")
         print(f"  Edge attributes shape: {data.edge_attr.shape if data.edge_attr is not None else 'None'}")
+
+        # number of current turn nodes - feature number 8 is current turn
+        current_turn_nodes = data.x[data.x[:, 8] == 1]
+        print(f"  Number of current turn nodes: {current_turn_nodes.shape[0]}")
+
+        # number of opponent turn nodes - feature number 9 is current turn
+        opponent_turn_nodes = data.x[data.x[:, 9] == 1]
+        print(f"  Number of opponent turn nodes: {opponent_turn_nodes.shape[0]}")
         print()
+        
+
+

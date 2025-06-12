@@ -20,6 +20,7 @@ def train_hive_model(model,
                      num_workers: int,
                      learning_rate: float,
                      shuffle_buffer_size: int,
+                     task_weights: dict,
                      project_name: str = "hive_model_training",):
     
 
@@ -34,7 +35,8 @@ def train_hive_model(model,
     )
 
     lightning_model = HiveLightningModel(model=model,
-                                         learning_rate=learning_rate)
+                                         learning_rate=learning_rate,
+                                         task_weights=task_weights)
 
     wandb_logger = WandbLogger(log_model="all",
                                project=project_name,
@@ -53,6 +55,7 @@ def train_hive_model(model,
     # --- 4. Set up Trainer ---
     data_module.setup()  # self.num_train_batches attribute gets set.
     trainer = Trainer(
+        #precision="16-mixed",
         accelerator="auto",  # Automatically uses GPU/MPS if available
         devices="auto",  # Automatically uses all available devices
         max_epochs=total_epochs,
@@ -80,15 +83,16 @@ if __name__ == "__main__":
 
     experiment_name="hive_model_training_lightning"
     filepath = f"{folder}/game_strings/combined.txt"
-    data_directory = f"{filepath}.webdataset_10000_games"
+    data_directory = f"{filepath}.webdataset_1000_games"
     checkpoint_dir = f"{folder}/lightning_checkpoints"
 
     model = create_hive_gatv2_gnn(hidden_dim=8,
-                                  num_layers=1,
+                                  num_layers=2,
                                   heads=1,
                                   dropout=0.05,
                                   residual=False,
                                   batch_norm=False,
+                                  task_heads=["value", "mobile_pieces"],
                                   pool_method='mean')
     
     train_hive_model(model=model,
@@ -96,9 +100,11 @@ if __name__ == "__main__":
                      checkpoint_dir=checkpoint_dir,
                      experiment_name=experiment_name,
                      total_epochs=10,
-                     batch_size=8,
-                     num_workers=2,
+                     batch_size=64,
+                     num_workers=4,
                      learning_rate=0.01,
-                     shuffle_buffer_size=10000)
+                     shuffle_buffer_size=10000,
+                     task_weights={"value": 1, 
+                                   "mobile_pieces": 1},)
     
 

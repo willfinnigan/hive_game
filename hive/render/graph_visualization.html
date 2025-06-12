@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch Geometric Graph Visualization</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet" type="text/css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .stats {
+            background-color: #ecf0f1;
+            padding: 15px 20px;
+            border-bottom: 1px solid #bdc3c7;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+
+        #network-container {
+            width: 100%;
+            height: 700px;
+            border: 1px solid #bdc3c7;
+        }
+
+        .controls {
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-top: 1px solid #bdc3c7;
+        }
+
+        .control-group {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 20px;
+            margin-bottom: 10px;
+        }
+
+        .control-group label {
+            margin-right: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .control-group button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .control-group button:hover {
+            background-color: #2980b9;
+        }
+
+        .legend {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .legend h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 20px;
+            margin-bottom: 5px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PyTorch Geometric Graph Visualization</h1>
+        </div>
+
+        <div class="stats">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">Nodes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">10</div>
+                    <div class="stat-label">Edges</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">2.00</div>
+                    <div class="stat-label">Avg Degree</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">Physics</div>
+                    <div class="stat-label">Layout</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="network-container"></div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Layout:</label>
+                <button onclick="togglePhysics()">Toggle Physics</button>
+            </div>
+            <div class="control-group">
+                <label>View:</label>
+                <button onclick="fitNetwork()">Fit to Screen</button>
+            </div>
+            <div class="control-group">
+                <label>Selection:</label>
+                <button onclick="selectAll()">Select All</button>
+                <button onclick="unselectAll()">Unselect All</button>
+            </div>
+        </div>
+
+        <div class="legend"><h3>Legend</h3><p><strong>Node Features:</strong> feature_1, feature_2, feature_3</p><p><strong>Edge Features:</strong> edge_weight, edge_type</p><p><strong>Node Colors:</strong></p><div class="legend-item"><div class="legend-color" style="background-color: #81C784;"></div>Class 0</div><div class="legend-item"><div class="legend-color" style="background-color: #FFAB91;"></div>Class 1</div><div class="legend-item"><div class="legend-color" style="background-color: #97C2FC;"></div>Class 2</div></div>
+    </div>
+
+    <script>
+        // Graph data
+        const nodes = new vis.DataSet([
+        {
+                "id": 0,
+                "label": "Node 0",
+                "title": "feature_1: 0.987\\nfeature_2: -1.675\\nfeature_3: -0.869",
+                "size": 41,
+                "color": "#97C2FC"
+        },
+        {
+                "id": 1,
+                "label": "Node 1",
+                "title": "feature_1: 1.639\\nfeature_2: -0.607\\nfeature_3: 0.336",
+                "size": 49,
+                "color": "#FFAB91"
+        },
+        {
+                "id": 2,
+                "label": "Node 2",
+                "title": "feature_1: -0.210\\nfeature_2: -0.181\\nfeature_3: 0.530",
+                "size": 24,
+                "color": "#97C2FC"
+        },
+        {
+                "id": 3,
+                "label": "Node 3",
+                "title": "feature_1: -1.268\\nfeature_2: -0.553\\nfeature_3: 0.439",
+                "size": 10,
+                "color": "#FFAB91"
+        },
+        {
+                "id": 4,
+                "label": "Node 4",
+                "title": "feature_1: 1.156\\nfeature_2: -0.265\\nfeature_3: 1.666",
+                "size": 43,
+                "color": "#81C784"
+        }
+]);
+        const edges = new vis.DataSet([
+        {
+                "id": 0,
+                "from": 0,
+                "to": 1,
+                "title": "edge_weight: -0.822\\nedge_type: 0.190",
+                "width": 2.0509297241343076,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 1,
+                "from": 1,
+                "to": 0,
+                "title": "edge_weight: -1.038\\nedge_type: 1.353",
+                "width": 1.0,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 2,
+                "from": 1,
+                "to": 2,
+                "title": "edge_weight: 0.740\\nedge_type: 1.032",
+                "width": 9.657507604907023,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 3,
+                "from": 2,
+                "to": 1,
+                "title": "edge_weight: 0.174\\nedge_type: -1.389",
+                "width": 6.901967919808016,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 4,
+                "from": 2,
+                "to": 3,
+                "title": "edge_weight: 0.574\\nedge_type: -0.018",
+                "width": 8.84948066768952,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 5,
+                "from": 3,
+                "to": 2,
+                "title": "edge_weight: -0.504\\nedge_type: 1.518",
+                "width": 3.600048912385337,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 6,
+                "from": 3,
+                "to": 4,
+                "title": "edge_weight: 0.811\\nedge_type: -1.449",
+                "width": 9.999999951326618,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 7,
+                "from": 4,
+                "to": 3,
+                "title": "edge_weight: -0.778\\nedge_type: 0.088",
+                "width": 2.26461899336502,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 8,
+                "from": 4,
+                "to": 0,
+                "title": "edge_weight: 0.430\\nedge_type: -1.831",
+                "width": 8.148189426540744,
+                "color": "#848484",
+                "arrows": "to"
+        },
+        {
+                "id": 9,
+                "from": 0,
+                "to": 4,
+                "title": "edge_weight: 0.099\\nedge_type: 1.007",
+                "width": 6.534837728512128,
+                "color": "#848484",
+                "arrows": "to"
+        }
+]);
+        const data = { nodes: nodes, edges: edges };
+
+        // Options
+        const options = {
+        "physics": {
+                "enabled": true,
+                "solver": "barnesHut",
+                "barnesHut": {
+                        "gravitationalConstant": -8000,
+                        "springConstant": 0.001,
+                        "springLength": 200
+                }
+        },
+        "layout": {
+                "improvedLayout": true
+        },
+        "interaction": {
+                "hover": true,
+                "selectConnectedEdges": false
+        },
+        "nodes": {
+                "shape": "dot",
+                "size": 20,
+                "font": {
+                        "size": 14,
+                        "color": "#000000"
+                },
+                "borderWidth": 2,
+                "shadow": true
+        },
+        "edges": {
+                "width": 2,
+                "shadow": true,
+                "smooth": {
+                        "type": "continuous"
+                }
+        }
+};
+
+        // Create network
+        const container = document.getElementById('network-container');
+        const network = new vis.Network(container, data, options);
+
+        // Event listeners
+        network.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const node = nodes.get(nodeId);
+                console.log('Clicked node:', node);
+            }
+            if (params.edges.length > 0) {
+                const edgeId = params.edges[0];
+                const edge = edges.get(edgeId);
+                console.log('Clicked edge:', edge);
+            }
+        });
+
+        network.on('hoverNode', function(params) {
+            container.style.cursor = 'pointer';
+        });
+
+        network.on('blurNode', function(params) {
+            container.style.cursor = 'default';
+        });
+
+        // Control functions
+        function togglePhysics() {
+            const currentPhysics = network.physics.physicsEnabled;
+            network.setOptions({ physics: { enabled: !currentPhysics } });
+        }
+
+        function fitNetwork() {
+            network.fit();
+        }
+
+        function selectAll() {
+            const allNodes = nodes.getIds();
+            network.selectNodes(allNodes);
+        }
+
+        function unselectAll() {
+            network.unselectAll();
+        }
+
+        // Initial fit
+        network.once('stabilized', function() {
+            network.fit();
+        });
+    </script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+from typing import List
 from torch import nn
 import lightning as L
 
@@ -5,17 +6,11 @@ from hive.ml.featurise.graph_to_pyg import game_to_pytorch
 from hive.ml.model.components.encoders import SimpleNodeEncoder
 from hive.ml.model.components.graph_nets import GATConvNet
 from hive.ml.model.components.model import HiveGNN, PoolingType
-from hive.ml.model.components.task_heads import MovePredictor, ValuePredictor
+from hive.ml.model.components.task_heads import MovePredictor, NumMobilePiecesPredictor, ValuePredictor
+from hive.ml.featurise.node_features import NUM_NODE_FEATS
 
-
-NODE_FEATS = 12
+NODE_FEATS = NUM_NODE_FEATS
 EDGE_FEATS = 6
-hidden_dim = 64
-num_layers = 2
-heads = 2
-dropout = 0.05
-residual = False
-batch_norm = False
 
 def create_hive_gatv2_gnn(hidden_dim: int,
                           num_layers: int,
@@ -23,6 +18,7 @@ def create_hive_gatv2_gnn(hidden_dim: int,
                           dropout: float,
                           residual: bool,
                           batch_norm: bool,
+                          task_heads: List[str],
                           pool_method: PoolingType
                         ):
 
@@ -38,23 +34,33 @@ def create_hive_gatv2_gnn(hidden_dim: int,
                        residual=residual,
                        batch_norm=batch_norm,
                        )
+    
+    value_head = ValuePredictor(in_channels=hidden_dim // heads,
+                                hidden_dim=hidden_dim,
+                                dropout=dropout)
+    
+    move_head = MovePredictor(in_channels=hidden_dim // heads,
+                                hidden_dim=hidden_dim,
+                                dropout=dropout)
+    
+    mobile_pieces_head = NumMobilePiecesPredictor(in_channels=hidden_dim // heads,
+                                                  hidden_dim=hidden_dim,
+                                                  dropout=dropout)
+    
 
-    task_heads = nn.ModuleDict({
-        "policy": MovePredictor(in_channels=hidden_dim // heads,
-                                hidden_dim=hidden_dim),
-        "value": ValuePredictor(in_channels=hidden_dim // heads,
-                                hidden_dim=hidden_dim)
-    })
+    all_task_heads = {
+        "policy": move_head,
+        "value": value_head,
+        "mobile_pieces": mobile_pieces_head  
+    }
 
-    value_only_head = nn.ModuleDict({
-        "value": ValuePredictor(in_channels=hidden_dim // heads,
-                                hidden_dim=hidden_dim)
-    })
+    task_head_modules = nn.ModuleDict({name: head for name, head in all_task_heads.items() if name in task_heads})
+
 
     return HiveGNN(encoder=encoder,
-                     conv_net=gatv2,
-                     task_heads=task_heads,
-                     pooling_type=pool_method)
+                   conv_net=gatv2,
+                   task_heads=task_head_modules,
+                   pooling_type=pool_method)
 
 
 

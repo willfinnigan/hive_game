@@ -1,4 +1,5 @@
 # modal_app.py
+import time
 from hive.ml.supervised_training.pre_run_to_pt import create_webdataset
 from modal import App, Image, Secret, Volume
 from pathlib import Path
@@ -63,12 +64,13 @@ def train():
     
     model = create_hive_gatv2_gnn(
         hidden_dim=128,
-        num_layers=4,
-        heads=2,
+        num_layers=3,
+        heads=4,
         dropout=0.05,
-        residual=True,
+        residual=False,
         batch_norm=False,
-        pool_method='add'
+        pool_method='add',
+        task_heads=["value"]
     )
     
     train_hive_model(
@@ -76,12 +78,13 @@ def train():
         data_directory=REMOTE_DATASET_DIR,
         experiment_name=experiment_name,
         checkpoint_dir=checkpoint_dir,
-        total_epochs=10,
-        batch_size=128,
-        num_workers=5,
-        learning_rate=0.01,
-        shuffle_buffer_size=5000,
-        project_name="hive_real_runs_1",
+        total_epochs=5,
+        batch_size=512,
+        num_workers=6,
+        learning_rate=0.05,
+        shuffle_buffer_size=10000,
+        project_name="hive_value_only_validation",
+        task_weights={"value": 1},
     )
 
     wandb.finish()
@@ -96,6 +99,8 @@ def main(task: str = "all"):
         train.remote()
     elif task == "all":
         preprocess.remote()
+        print(f"Processing complete. Starting training in 10 seconds...")
+        time.sleep(10)
         train.remote()
     else:
         print(f"Unknown task: {task}. Available tasks: preprocess, train, all")

@@ -11,17 +11,13 @@ from hive.ml.featurise.node_features import all_node_feature_methods
 LocID = Tuple[Tuple[int, int], int]  # (location, stack_idx)
 
 # Edge features are defined as follows:
-# [adjacent, above, below, forward, retro, is_current_turn]
+# [adjacent, above, below, forward move, retro move, is_current_turn]
 
 
 class Graph():
     """An intermediate representation on the way to a pytorch geometric graph."""
 
     def __init__(self, game: Game):
-
-        self.current_colour = game.current_turn
-        # Add missing current_turn attribute - this was causing the AttributeError
-        self.current_turn = game.current_turn
 
         self.nodes: List[Node] = []
         self.nodes_by_location: Dict[LocID, Node] = {}
@@ -30,11 +26,10 @@ class Graph():
         self.edge_features = []
         self.edge_moves = []  # store the moves for each edge
 
-        self._create_pass_node()  # creates pass node with a move edge to itself
         self._create_nodes_in_play(game)
         self._create_nodes_unplaced(game)
+        self._create_pass_node(game)  # creates pass node with a move edge to itself - pass edge is always first
         self._create_move_edges(game)
-        
 
         for node in self.nodes:
             node.featurise(self, game, all_node_feature_methods)
@@ -42,15 +37,15 @@ class Graph():
             self.edges += edges
             self.edge_features += edge_features
 
-    def _create_pass_node(self):
-        node = Node(None, 0, None, is_current_turn=self.current_turn == self.current_colour)
+    def _create_pass_node(self, game: Game):
+        node = Node(None, None, None)
         self.nodes.append(node)
         self.nodes_by_location[node.loc_id] = node
 
         # this edge will be added along with the other edges later
         self.edges.append((node, node))
         self.edge_features.append([0, 0, 0, 1, 0, 1])  # add edge feature for pass node
-        self.edge_moves.append(hash(NoMove(colour=self.current_colour,)))  # add the hash of NoMove so we have correct number of edges
+        self.edge_moves.append(hash(NoMove(colour=game.current_turn)))  # add the hash of NoMove so we have correct number of edges
         
 
     def _create_nodes_in_play(self, game):
@@ -58,7 +53,7 @@ class Graph():
 
         # if empty grid, create a single empty node at 0, 0
         if len(game.grid) == 0:
-            node = Node((0, 0), 0, None, is_current_turn=self.current_turn == self.current_colour)
+            node = Node((0, 0), 0, None)
             self.nodes.append(node)
             self.nodes_by_location[node.loc_id] = node
             return
@@ -82,13 +77,13 @@ class Graph():
             else:
                 # create a node for each piece in the stack
                 for i, piece in enumerate(stack):
-                    node = Node(loc, i, piece)
+                    node = Node(loc, i, piece, is_current_turn=piece.colour == game.current_turn)
                     self.nodes.append(node)
                     self.nodes_by_location[node.loc_id] = node
 
 
-        opponent_colour = opposite_colour(self.current_colour)
-        current_moves = get_players_possible_moves_or_placements(self.current_colour, game)
+        opponent_colour = opposite_colour(game.current_turn)
+        current_moves = get_players_possible_moves_or_placements(game.current_turn, game)
         opponent_moves = get_players_possible_moves_or_placements(opponent_colour, game)
 
         move_locations_w_stack_idx = set()
@@ -119,15 +114,15 @@ class Graph():
                     continue
 
                 # create a node for each unplayed piece
-                node = Node(None, 0, piece, is_current_turn=game.current_turn == self.current_colour)
+                node = Node(None, 0, piece, is_current_turn=piece.colour == game.current_turn)
                 self.nodes.append(node)
                 self.nodes_by_location[node.loc_id] = node
                 created.add(piece.name)
 
     def _create_move_edges(self, game):
         """Create move edges for all nodes."""
-        opponent_colour = opposite_colour(self.current_colour)
-        current_moves = get_players_possible_moves_or_placements(self.current_colour, game)
+        opponent_colour = opposite_colour(game.current_turn)
+        current_moves = get_players_possible_moves_or_placements(game.current_turn, game)
         opponent_moves = get_players_possible_moves_or_placements(opponent_colour, game)
 
         for move in current_moves:
@@ -209,7 +204,7 @@ class Node():
         """Return a list of features for this node."""
         for method in methods:
             self.node_features.extend(
-                method(self.piece, self.location, self.stack_idx, graph.current_colour, game.grid))
+                method(self.piece, self.location, self.stack_idx, game.current_turn, game.grid))
 
     def __repr__(self):
         return f"Node({self.location}, {self.stack_idx}, {self.piece})"
@@ -248,6 +243,10 @@ class Node():
     def _add_stack_edges(self, graph: Graph, game: Game):
 
         edges, edge_features = [], []
+
+        if self.stack_idx is None:
+            # if stack_idx is None, then no edges
+            return [], []
 
         # if stack_idx is -1 or 0
         if self.stack_idx <= 0:
