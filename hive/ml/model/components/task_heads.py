@@ -5,12 +5,11 @@ from torch import nn
 class TaskHead(nn.Module):
     """Base class for task-specific heads"""
 
-    def __init__(self, in_channels, hidden_dim, dropout=0.1, num_layers=2):
+    def __init__(self, in_channels, hidden_dim, dropout=0.1):
         super().__init__()
         self.in_channels = in_channels
         self.hidden_dim = hidden_dim
         self.dropout = dropout
-        self.num_layers = num_layers
 
     def forward(self, node_embeddings=None, graph_embedding=None, data=None):
         raise NotImplementedError
@@ -19,22 +18,18 @@ class TaskHead(nn.Module):
 class MovePredictor(TaskHead):
     """Head for predicting valid moves (edge-level prediction)"""
 
-    def __init__(self, in_channels, hidden_dim, dropout=0.1, num_layers=3):
-        super().__init__(in_channels, hidden_dim, dropout, num_layers)
+    def __init__(self, in_channels, hidden_dim, dropout=0.1):
+        super().__init__(in_channels, hidden_dim, dropout)
 
-        layers = []
-        layers.append(nn.Linear(2 * in_channels, hidden_dim))
-        layers.append(nn.ReLU())
-        layers.append(nn.Dropout(dropout))
-
-        for _ in range(num_layers - 2):
-            layers.append(nn.Linear(hidden_dim, hidden_dim // 2))
-            layers.append(nn.ReLU())
-            layers.append(nn.Dropout(dropout))
-
-        layers.append(nn.Linear(hidden_dim // 2, 1))
-
-        self.edge_predictor = nn.Sequential(*layers)
+        self.edge_predictor = nn.Sequential(
+            nn.Linear(2 * in_channels, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, 1)
+        )
 
 
     def forward(self, node_embeddings=None, graph_embedding=None, data=None):
@@ -64,43 +59,36 @@ class MovePredictor(TaskHead):
 class ValuePredictor(TaskHead):
     """Head for predicting game position value"""
 
-    def __init__(self, in_channels, hidden_dim, dropout=0.1, num_layers=2):
-        super().__init__(in_channels, hidden_dim, dropout, num_layers)
+    def __init__(self, in_channels, hidden_dim, dropout=0.1):
+        super().__init__(in_channels, hidden_dim, dropout)
 
-        layers = []
-        layers.append(nn.Linear(in_channels, hidden_dim))
-        layers.append(nn.ReLU())
-        layers.append(nn.Dropout(dropout))
-        for _ in range(num_layers - 1):
-            layers.append(nn.Linear(hidden_dim, hidden_dim // 2))
-            layers.append(nn.ReLU())
-            layers.append(nn.Dropout(dropout))
-        layers.append(nn.Linear(hidden_dim // 2, 1))
-        self.value_head = nn.Sequential(*layers)
+        self.value_head = nn.Sequential(
+            nn.Linear(in_channels, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, 1),
+            nn.Tanh()  # Value between -1 and 1
+        )
 
     def forward(self, node_embeddings=None, graph_embedding=None, data=None):
         if graph_embedding is None:
             raise ValueError("ValuePredictor requires graph_embedding")
 
         return self.value_head(graph_embedding).squeeze(-1)
-    
 
 class NumMobilePiecesPredictor(TaskHead):
     """Head for predicting the number of mobile pieces"""
 
-    def __init__(self, in_channels, hidden_dim, dropout=0.1, num_layers=2):
-        super().__init__(in_channels, hidden_dim, dropout, num_layers)
+    def __init__(self, in_channels, hidden_dim, dropout=0.1):
+        super().__init__(in_channels, hidden_dim, dropout)
 
-        layers = []
-        layers.append(nn.Linear(in_channels, hidden_dim))
-        layers.append(nn.ReLU())
-        layers.append(nn.Dropout(dropout))
-        for _ in range(num_layers - 1):
-            layers.append(nn.Linear(hidden_dim, hidden_dim // 2))
-            layers.append(nn.ReLU())
-            layers.append(nn.Dropout(dropout))
-        layers.append(nn.Linear(hidden_dim // 2, 1))
-        self.mobile_pieces_head = nn.Sequential(*layers)
+        self.value_head = nn.Sequential(
+            nn.Linear(in_channels, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, 1),
+            
+        )
 
     def forward(self, node_embeddings=None, graph_embedding=None, data=None):
         if graph_embedding is None:
