@@ -130,7 +130,7 @@ def process_endgame(game: Game,
                     include_moves=True,
                     include_value=True,
                     include_auxiliary=True,
-                    value_discount=1) -> List[Data]:
+                    value_discount=0.75) -> List[Data]:
     """Taking a game in endgame state, return Data objects with move labels and winner information"""
     winner = get_winner(game)
 
@@ -212,7 +212,7 @@ if __name__ == '__main__':
     for i, data in enumerate(all_data):
         print(f"Data object {i}:")
         print(f"  Move idx: {data.policy}")
-        print(f"  Mobile piece count: {data.mobile_piece_count}")
+        print(f"  Mobile piece count: {data.mobile_pieces}")
         print(f"  Step: {data.step}")
         print(f"  Batch index: {data.move_batch_idx}")
         print(f"  Value: {data.value}")
