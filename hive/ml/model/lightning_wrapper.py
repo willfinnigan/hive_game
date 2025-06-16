@@ -48,7 +48,6 @@ class HiveLightningModel(L.LightningModule):
             acc = ((filtered_preds > 0) == (filtered_targets > 0)).float().mean()
 
         # Log metrics
-        on_step = (phase == 'train')
         num_valid_samples = mask.sum().item()
         if num_valid_samples == 0:
             num_valid_samples = 1 # Avoid division by zero if batch is empty
@@ -76,7 +75,7 @@ class HiveLightningModel(L.LightningModule):
         """Calculate policy loss for variable number of moves per graph"""
         # Convert flat predictions to dense batch format
         dense_preds, mask = to_dense_batch(predictions, batch.move_batch_idx)
-        dense_preds[~mask] = -1e9  # Mask padded positions
+        dense_preds[~mask] = -1e4   # Mask padded positions
         
         # Calculate loss
         loss = F.cross_entropy(dense_preds, targets)

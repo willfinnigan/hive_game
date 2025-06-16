@@ -44,15 +44,18 @@ def preprocess():
         max_games=None,
         output_dir=Path(REMOTE_DATASET_DIR),
         num_processes=None,  # Automatically use all available cores
-        total_chunks=250,
+        total_chunks=300,
     )
     print("Preprocessing complete.")
 
-
+mem_request=32000  # 32GB memory request
+mem_limit=64000
 @app.function(
     image=image,
     secrets=[Secret.from_name("wandb-secret")],
-    gpu="T4",
+    gpu="A10G",
+    cpu=14,
+    memory=(mem_request, mem_limit),
     volumes={"/data": dataset_volume},
     timeout=21600,
 )
@@ -61,16 +64,20 @@ def train():
     print("Starting model training...")
     checkpoint_dir = "/data/lightning_checkpoints"
     experiment_name = None
+
+    import torch
+
+    torch.set_float32_matmul_precision('high')  # or 'high' for more speed but less precision
     
     model = create_hive_gatv2_gnn(
-        hidden_dim=128,
-        num_layers=3,
-        heads=4,
+        hidden_dim=256,
+        num_layers=6,
+        heads=8,
         dropout=0.05,
-        residual=False,
-        batch_norm=False,
+        residual=True,
+        batch_norm=True,
         pool_method='add',
-        task_heads=["value"]
+        task_heads=["policy"]
     )
     
     train_hive_model(
@@ -78,13 +85,15 @@ def train():
         data_directory=REMOTE_DATASET_DIR,
         experiment_name=experiment_name,
         checkpoint_dir=checkpoint_dir,
-        total_epochs=5,
+        total_epochs=250,
         batch_size=512,
-        num_workers=6,
-        learning_rate=0.05,
+        num_workers=12,
+        learning_rate=0.001,
         shuffle_buffer_size=10000,
-        project_name="hive_value_only_validation",
-        task_weights={"value": 1},
+        precision=16,
+        pin_memory=True,
+        project_name="hive_policy",
+        task_weights={"policy": 1},
     )
 
     wandb.finish()

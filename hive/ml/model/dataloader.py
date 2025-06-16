@@ -25,11 +25,13 @@ class WebdatasetHiveDataModule(L.LightningDataModule):
         batch_size: int = 64,
         num_workers: int = 4,
         shuffle_buffer_size: int = 10000,
+        pin_memory: bool = True
     ):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.pin_memory = pin_memory
         self.shuffle_buffer_size = shuffle_buffer_size
         metadata_path = os.path.join(self.data_dir, "metadata.json")
         try:
@@ -80,6 +82,7 @@ class WebdatasetHiveDataModule(L.LightningDataModule):
             batch_size=None,
             shuffle=False,
             num_workers=self.num_workers,
+            pin_memory=self.pin_memory,
             persistent_workers=True if self.num_workers > 0 else False,
         )
         

@@ -104,3 +104,6 @@ mlruns/
 # Game strings except for the .txt files
 game_strings/*
 !game_strings/*.txt
+
+nokamute/*
+

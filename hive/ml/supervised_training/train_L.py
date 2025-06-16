@@ -20,8 +20,11 @@ def train_hive_model(model,
                      num_workers: int,
                      learning_rate: float,
                      shuffle_buffer_size: int,
+                     pin_memory: bool,
                      task_weights: dict,
-                     project_name: str = "hive_model_training",):
+                     precision: int = 32,
+                     project_name: str = "hive_model_training",
+                     ):
     
 
     os.makedirs(checkpoint_dir, exist_ok=True)
@@ -31,16 +34,17 @@ def train_hive_model(model,
         data_dir=data_directory,
         batch_size=batch_size,
         num_workers=num_workers,
-        shuffle_buffer_size=shuffle_buffer_size
+        shuffle_buffer_size=shuffle_buffer_size,
+        pin_memory=pin_memory,
     )
 
     lightning_model = HiveLightningModel(model=model,
                                          learning_rate=learning_rate,
                                          task_weights=task_weights)
 
-    # wandb_logger = WandbLogger(log_model="all",
-    #                            project=project_name,
-    #                            name=experiment_name)
+    wandb_logger = WandbLogger(log_model="all",
+                               project=project_name,
+                               name=experiment_name)
 
     # Checkpoint callback to save the best model
     checkpoint_callback = ModelCheckpoint(
@@ -48,19 +52,18 @@ def train_hive_model(model,
         dirpath=f'{checkpoint_dir}/lightning_checkpoints/',
         filename='hive-model-{epoch:02d}-{train_loss_epoch:.2f}',
         mode='min',
-        save_top_k=-1,  # Save every epoch
-        every_n_epochs=1
+        save_top_k=2,
+        every_n_epochs=10
     )
 
     # --- 4. Set up Trainer ---
     data_module.setup()  # self.num_train_batches attribute gets set.
     trainer = Trainer(
-        #precision="16-mixed",
+        precision=precision,
         accelerator="auto",  # Automatically uses GPU/MPS if available
         devices="auto",  # Automatically uses all available devices
         max_epochs=total_epochs,
-        #logger=wandb_logger,
-        log_every_n_steps=200,
+        logger=wandb_logger,
         callbacks=[checkpoint_callback],
         gradient_clip_val=1.0,
         limit_train_batches=data_module.num_train_batches  # for progress bar
@@ -104,6 +107,7 @@ if __name__ == "__main__":
                      batch_size=256,
                      num_workers=1,
                      learning_rate=0.001,
+                     pin_memory=True,
                      shuffle_buffer_size=10,
                      task_weights={"value": 1,
                                    "policy": 1},)
